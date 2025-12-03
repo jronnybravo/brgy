@@ -1,0 +1,41 @@
+{
+  "name": "brgy-mapping",
+  "version": "0.0.1",
+  "private": true,
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"typeorm": "typeorm-ts-node-commonjs",
+		"seed:siquijor:osm": "node scripts/fetch-siquijor-bbox.js && node scripts/seed-siquijor.js",
+		"seed:siquijor:shapefile": "node scripts/convert-shapefile-siquijor.js && node scripts/seed-siquijor.js",
+		"seed:siquijor": "node scripts/convert-shapefile-siquijor.js && node scripts/seed-siquijor.js",
+		"seed:philippines:convert": "node scripts/convert-all-philippines.js",
+		"seed:philippines:import": "node scripts/seed-philippines-chunked.js",
+		"seed:philippines": "node scripts/convert-all-philippines.js && node scripts/seed-philippines-chunked.js"
+	},
+  "devDependencies": {
+    "@sveltejs/adapter-auto": "^3.0.0",
+    "@sveltejs/kit": "^2.0.0",
+    "@sveltejs/vite-plugin-svelte": "^3.0.0",
+    "@types/geojson": "^7946.0.14",
+    "@types/leaflet": "^1.9.8",
+    "svelte": "^4.2.7",
+    "svelte-check": "^3.6.0",
+    "tslib": "^2.4.1",
+    "typescript": "^5.0.0",
+    "vite": "^5.0.3"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.10",
+    "dotenv": "^16.6.1",
+    "leaflet": "^1.9.4",
+    "mysql2": "^3.6.5",
+    "reflect-metadata": "^0.2.1",
+    "shapefile": "^0.6.6",
+    "typeorm": "^0.3.17"
+  },
+  "type": "module"
+}

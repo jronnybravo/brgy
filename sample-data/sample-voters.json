@@ -1,0 +1,64 @@
+[
+	{
+		"firstName": "Juan",
+		"lastName": "Dela Cruz",
+		"middleName": "Santos",
+		"localityId": 1,
+		"address": "123 Main Street",
+		"latitude": 14.01,
+		"longitude": 121.01,
+		"voterId": "V-2024-001",
+		"registeredDate": "2024-01-15",
+		"status": "active",
+		"phoneNumber": "+63-912-345-6789",
+		"email": "juan.delacruz@example.com"
+	},
+	{
+		"firstName": "Maria",
+		"lastName": "Santos",
+		"middleName": "Garcia",
+		"localityId": 1,
+		"address": "456 Oak Avenue",
+		"latitude": 14.011,
+		"longitude": 121.011,
+		"voterId": "V-2024-002",
+		"registeredDate": "2024-02-20",
+		"status": "active",
+		"phoneNumber": "+63-917-234-5678"
+	},
+	{
+		"firstName": "Pedro",
+		"lastName": "Reyes",
+		"localityId": 2,
+		"address": "789 Pine Road",
+		"latitude": 14.03,
+		"longitude": 121.03,
+		"voterId": "V-2024-003",
+		"registeredDate": "2024-03-10",
+		"status": "active"
+	},
+	{
+		"firstName": "Ana",
+		"lastName": "Lopez",
+		"middleName": "Mendoza",
+		"localityId": 2,
+		"address": "321 Elm Street",
+		"voterId": "V-2024-004",
+		"registeredDate": "2024-01-05",
+		"status": "active",
+		"email": "ana.lopez@example.com"
+	},
+	{
+		"firstName": "Jose",
+		"lastName": "Rivera",
+		"localityId": 3,
+		"address": "654 Maple Drive",
+		"latitude": 14.031,
+		"longitude": 121.011,
+		"voterId": "V-2024-005",
+		"registeredDate": "2023-12-15",
+		"status": "active",
+		"phoneNumber": "+63-905-876-5432"
+	}
+]
+

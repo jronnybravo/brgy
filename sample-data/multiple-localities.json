@@ -1,0 +1,75 @@
+[
+	{
+		"name": "Barangay San Antonio",
+		"code": "BRG-001",
+		"type": "barangay",
+		"population": 5200,
+		"boundaryGeoJSON": {
+			"type": "Polygon",
+			"coordinates": [
+				[
+					[121.0, 14.0],
+					[121.02, 14.0],
+					[121.02, 14.02],
+					[121.0, 14.02],
+					[121.0, 14.0]
+				]
+			]
+		}
+	},
+	{
+		"name": "Barangay Santa Cruz",
+		"code": "BRG-002",
+		"type": "barangay",
+		"population": 4800,
+		"boundaryGeoJSON": {
+			"type": "Polygon",
+			"coordinates": [
+				[
+					[121.02, 14.0],
+					[121.04, 14.0],
+					[121.04, 14.02],
+					[121.02, 14.02],
+					[121.02, 14.0]
+				]
+			]
+		}
+	},
+	{
+		"name": "Barangay Del Pilar",
+		"code": "BRG-003",
+		"type": "barangay",
+		"population": 6100,
+		"boundaryGeoJSON": {
+			"type": "Polygon",
+			"coordinates": [
+				[
+					[121.0, 14.02],
+					[121.02, 14.02],
+					[121.02, 14.04],
+					[121.0, 14.04],
+					[121.0, 14.02]
+				]
+			]
+		}
+	},
+	{
+		"name": "Barangay San Jose",
+		"code": "BRG-004",
+		"type": "barangay",
+		"population": 5500,
+		"boundaryGeoJSON": {
+			"type": "Polygon",
+			"coordinates": [
+				[
+					[121.02, 14.02],
+					[121.04, 14.02],
+					[121.04, 14.04],
+					[121.02, 14.04],
+					[121.02, 14.02]
+				]
+			]
+		}
+	}
+]
+
