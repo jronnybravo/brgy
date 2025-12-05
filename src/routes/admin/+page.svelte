@@ -243,7 +243,7 @@
 							bind:value={formData.boundaryGeoJSON}
 							rows="10"
 							required
-							placeholder='{"type":"Polygon","coordinates":[[[lng,lat],[lng,lat],...]]}'
+							placeholder={`{"type":"Polygon","coordinates":[[[lng,lat],[lng,lat],...]]}`}
 						></textarea>
 						<small
 							>Must be a valid GeoJSON Polygon. Coordinates in [longitude, latitude] format.</small
