@@ -71,8 +71,20 @@ export const POST: RequestHandler = async ({ request }) => {
 			data.centroidLng = avgLng;
 		}
 
-		// ActiveRecord pattern - create and save directly on entity
-		const locality = Locality.create(data);
+		// For closure table to work, we need to set the parent RELATION, not just parentId
+		let parentEntity: Locality | null = null;
+		if (data.parentId) {
+			parentEntity = await Locality.findOne({ where: { id: data.parentId } });
+			if (!parentEntity) {
+				return json({ error: `Parent locality with id ${data.parentId} not found` }, { status: 400 });
+			}
+		}
+
+		// Create locality with parent relation set (required for closure table)
+		const locality = Locality.create({
+			...data,
+			parent: parentEntity // This is what makes the closure table work!
+		});
 		await locality.save();
 
 		return json(locality, { status: 201 });

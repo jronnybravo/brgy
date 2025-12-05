@@ -2,6 +2,10 @@ import { config } from 'dotenv';
 import { DataSource } from 'typeorm';
 import { Locality } from './entities/Locality';
 import { Voter } from './entities/Voter';
+import { Election } from './entities/Election';
+import { ElectionContest } from './entities/ElectionContest';
+import { Candidate } from './entities/Candidate';
+import { ElectionResult } from './entities/ElectionResult';
 
 // Load environment variables from .env file
 config();
@@ -15,24 +19,41 @@ export const AppDataSource = new DataSource({
 	database: process.env.DB_DATABASE || 'brgy_mapping',
 	synchronize: process.env.NODE_ENV === 'development', // Auto-sync schema in development
 	logging: process.env.NODE_ENV === 'development',
-	entities: [Locality, Voter],
+	entities: [Locality, Voter, Election, ElectionContest, Candidate, ElectionResult],
 	migrations: [],
 	subscribers: []
 });
 
-let initialized = false;
+let initializationPromise: Promise<DataSource> | null = null;
 
-export async function initializeDatabase() {
-	if (!initialized) {
-		await AppDataSource.initialize();
-		initialized = true;
-		console.log('Database connection initialized');
+export async function initializeDatabase(): Promise<DataSource> {
+	// Return existing connection if already initialized
+	if (AppDataSource.isInitialized) {
+		return AppDataSource;
 	}
-	return AppDataSource;
+	
+	// If initialization is in progress, wait for it
+	if (initializationPromise) {
+		return initializationPromise;
+	}
+	
+	// Start initialization and store the promise to prevent race conditions
+	initializationPromise = AppDataSource.initialize()
+		.then(() => {
+			console.log('Database connection initialized');
+			return AppDataSource;
+		})
+		.catch((error) => {
+			// Reset promise on error so retry is possible
+			initializationPromise = null;
+			throw error;
+		});
+	
+	return initializationPromise;
 }
 
-export async function getDataSource() {
-	if (!initialized) {
+export async function getDataSource(): Promise<DataSource> {
+	if (!AppDataSource.isInitialized) {
 		await initializeDatabase();
 	}
 	return AppDataSource;

@@ -12,6 +12,11 @@ import readline from 'readline';
 const API_URL = process.env.API_URL || 'http://localhost:5173/api/localities';
 const DATA_FILE = './data/philippines-all-localities.json';
 
+// Max points per polygon ring before simplification
+const MAX_POINTS = 500;
+// Coordinate precision (decimal places)
+const COORD_PRECISION = 10;
+
 // Track created entities to avoid duplicates
 const createdEntities = {
 	regions: new Map(),
@@ -19,7 +24,63 @@ const createdEntities = {
 	municipalities: new Map()
 };
 
-async function createLocality(locality) {
+/**
+ * Simplify GeoJSON geometry to reduce payload size
+ * - Reduces coordinate precision
+ * - Simplifies polygons with too many points using Douglas-Peucker-like reduction
+ */
+function simplifyGeometry(geojson) {
+	if (!geojson || !geojson.coordinates) return geojson;
+
+	const roundCoord = (num) => Math.round(num * Math.pow(10, COORD_PRECISION)) / Math.pow(10, COORD_PRECISION);
+
+	// Simple point reduction: keep every Nth point if too many
+	const simplifyRing = (ring) => {
+		if (!Array.isArray(ring)) return ring;
+		
+		// Round coordinates
+		let simplified = ring.map(coord => {
+			if (Array.isArray(coord) && coord.length >= 2) {
+				return [roundCoord(coord[0]), roundCoord(coord[1])];
+			}
+			return coord;
+		});
+
+		// If too many points, reduce by keeping every Nth point
+		// if (simplified.length > MAX_POINTS) {
+		// 	const step = Math.ceil(simplified.length / MAX_POINTS);
+		// 	const reduced = [];
+		// 	for (let i = 0; i < simplified.length; i += step) {
+		// 		reduced.push(simplified[i]);
+		// 	}
+		// 	// Ensure ring is closed (first point = last point)
+		// 	if (reduced.length > 0 && 
+		// 		(reduced[0][0] !== reduced[reduced.length - 1][0] || 
+		// 		 reduced[0][1] !== reduced[reduced.length - 1][1])) {
+		// 		reduced.push(reduced[0]);
+		// 	}
+		// 	return reduced;
+		// }
+
+		return simplified;
+	};
+
+	if (geojson.type === 'Polygon') {
+		return {
+			type: 'Polygon',
+			coordinates: geojson.coordinates.map(simplifyRing)
+		};
+	} else if (geojson.type === 'MultiPolygon') {
+		return {
+			type: 'MultiPolygon',
+			coordinates: geojson.coordinates.map(polygon => polygon.map(simplifyRing))
+		};
+	}
+
+	return geojson;
+}
+
+async function createLocality(locality, retries = 2) {
 	try {
 		const response = await fetch(API_URL, {
 			method: 'POST',
@@ -28,13 +89,19 @@ async function createLocality(locality) {
 		});
 
 		if (!response.ok) {
-			const error = await response.json();
-			throw new Error(`HTTP ${response.status}`);
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(`HTTP ${response.status}: ${JSON.stringify(error)}`);
 		}
 
 		return await response.json();
 	} catch (error) {
-		throw new Error(`Failed to create ${locality.name}: ${error.message}`);
+		// Retry on connection errors
+		if (retries > 0 && (error.message.includes('ECONNRESET') || error.message.includes('fetch failed'))) {
+			await new Promise(r => setTimeout(r, 1000)); // Wait 1 second before retry
+			return createLocality(locality, retries - 1);
+		}
+		console.error(`❌ Failed to create ${locality.type} "${locality.name}": ${error.message}`);
+		throw error;
 	}
 }
 
@@ -44,7 +111,6 @@ async function createOrGetRegion(regionCode, regionName) {
 	}
 
 	try {
-		// For Tree entities, don't pass parentId in POST, use separate parent endpoint
 		const created = await createLocality({
 			name: regionName,
 			code: regionCode,
@@ -58,22 +124,22 @@ async function createOrGetRegion(regionCode, regionName) {
 		createdEntities.regions.set(regionCode, created);
 		return created;
 	} catch (error) {
+		// Region might already exist - try to fetch it
 		return null;
 	}
 }
 
-async function createOrGetProvince(provinceCode, provinceName, regionParent) {
+async function createOrGetProvince(provinceCode, provinceName, regionParentId) {
 	if (createdEntities.provinces.has(provinceCode)) {
 		return createdEntities.provinces.get(provinceCode);
 	}
 
 	try {
-		// For Tree entities, pass parent object reference, not parentId
 		const created = await createLocality({
 			name: provinceName,
 			code: provinceCode,
 			type: 'province',
-			parentId: regionParent?.id, // Keep parentId for now
+			parentId: regionParentId, // regionParentId is already the ID number
 			boundaryGeoJSON: {
 				type: 'Polygon',
 				coordinates: [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]]
@@ -87,18 +153,17 @@ async function createOrGetProvince(provinceCode, provinceName, regionParent) {
 	}
 }
 
-async function createOrGetMunicipality(municipalityCode, municipalityName, provinceParent) {
+async function createOrGetMunicipality(municipalityCode, municipalityName, provinceParentId) {
 	if (createdEntities.municipalities.has(municipalityCode)) {
 		return createdEntities.municipalities.get(municipalityCode);
 	}
 
 	try {
-		// For Tree entities, pass parent object reference, not parentId
 		const created = await createLocality({
 			name: municipalityName,
 			code: municipalityCode,
 			type: 'municipality',
-			parentId: provinceParent?.id, // Keep parentId for now
+			parentId: provinceParentId, // provinceParentId is already the ID number
 			boundaryGeoJSON: {
 				type: 'Polygon',
 				coordinates: [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]]
@@ -158,13 +223,13 @@ async function processBarangay(barangay, stats) {
 			}
 		}
 		
-		// Create barangay
+		// Create barangay with simplified geometry
 		const barangayData = {
 			name: barangay.name,
 			code: barangay.code,
 			type: 'barangay',
 			parentId: municipalityId,
-			boundaryGeoJSON: barangay.boundaryGeoJSON
+			boundaryGeoJSON: simplifyGeometry(barangay.boundaryGeoJSON)
 		};
 		
 		// Remove undefined fields

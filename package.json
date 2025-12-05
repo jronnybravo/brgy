@@ -14,7 +14,8 @@
 		"seed:siquijor": "node scripts/convert-shapefile-siquijor.js && node scripts/seed-siquijor.js",
 		"seed:philippines:convert": "node scripts/convert-all-philippines.js",
 		"seed:philippines:import": "node scripts/seed-philippines-chunked.js",
-		"seed:philippines": "node scripts/convert-all-philippines.js && node scripts/seed-philippines-chunked.js"
+		"seed:philippines": "node scripts/convert-all-philippines.js && node scripts/seed-philippines-chunked.js",
+		"import:elections": "node scripts/import-election-results.js"
 	},
   "devDependencies": {
     "@sveltejs/adapter-auto": "^3.0.0",
