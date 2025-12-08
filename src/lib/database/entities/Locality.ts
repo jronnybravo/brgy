@@ -43,14 +43,15 @@ export class Locality extends BaseEntity {
 	boundaryGeoJSON!: GeoJSON;
 
 	// For MySQL 8.0+ with spatial support
-	// Using GEOMETRY type for spatial operations
-	@Column({
-		type: 'geometry',
-		spatialFeatureType: 'Polygon',
-		srid: 4326,
-		nullable: true
-	})
-	geometry?: string; // This will store the actual geometry in MySQL spatial format
+	// NOTE: Commented out due to TypeORM bug with MySQL 8.0.42+ using AsText instead of ST_AsText
+	// If you need spatial indexing, manually create the geometry column after schema sync
+	// @Column({
+	// 	type: 'geometry',
+	// 	spatialFeatureType: 'Polygon',
+	// 	srid: 4326,
+	// 	nullable: true
+	// })
+	// geometry?: string; // This will store the actual geometry in MySQL spatial format
 
 	// Store centroid as separate point for quick lookups
 	@Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
