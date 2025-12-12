@@ -8,14 +8,7 @@
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-    "typeorm": "typeorm-ts-node-commonjs",
-    "seed:siquijor:osm": "node scripts/fetch-siquijor-bbox.js && node scripts/seed-siquijor.js",
-    "seed:siquijor:shapefile": "node scripts/convert-shapefile-siquijor.js && node scripts/seed-siquijor.js",
-    "seed:siquijor": "node scripts/convert-shapefile-siquijor.js && node scripts/seed-siquijor.js",
-    "seed:philippines:convert": "node scripts/convert-all-philippines.js",
-    "seed:philippines:import": "node scripts/seed-philippines-chunked.js",
-    "seed:philippines": "node scripts/convert-all-philippines.js && node scripts/seed-philippines-chunked.js",
-    "import:elections": "node scripts/import-election-results.js"
+    "typeorm": "typeorm-ts-node-commonjs"
   },
   "devDependencies": {
     "@sveltejs/adapter-auto": "^3.0.0",
@@ -31,8 +24,12 @@
     "vite": "^5.0.3"
   },
   "dependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "adm-zip": "^0.5.10",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^16.6.1",
+    "jsonwebtoken": "^9.0.3",
     "leaflet": "^1.9.4",
     "mysql2": "^3.6.5",
     "reflect-metadata": "^0.2.1",

@@ -6,6 +6,8 @@ import { Election } from './entities/Election';
 import { ElectionContest } from './entities/ElectionContest';
 import { Candidate } from './entities/Candidate';
 import { ElectionResult } from './entities/ElectionResult';
+import { User } from './entities/User';
+import { People } from './entities/People';
 
 // Load environment variables from .env file
 config();
@@ -19,7 +21,7 @@ export const AppDataSource = new DataSource({
 	database: process.env.DB_DATABASE || 'brgy_mapping',
 	synchronize: process.env.NODE_ENV === 'development', // Auto-sync schema in development
 	logging: process.env.NODE_ENV === 'development',
-	entities: [Locality, Voter, Election, ElectionContest, Candidate, ElectionResult],
+	entities: [Locality, Voter, Election, ElectionContest, Candidate, ElectionResult, User, People],
 	migrations: [],
 	subscribers: []
 });

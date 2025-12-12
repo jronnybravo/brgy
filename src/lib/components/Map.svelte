@@ -84,6 +84,19 @@
 		return content;
 	}
 
+	function isValidGeoJSON(geoJson: any): boolean {
+		if (!geoJson) return false;
+		if (typeof geoJson === 'string') {
+			try {
+				geoJson = JSON.parse(geoJson);
+			} catch {
+				return false;
+			}
+		}
+		// Check if it has the required geometry properties
+		return geoJson && (geoJson.type === 'Polygon' || geoJson.type === 'MultiPolygon' || geoJson.type === 'Point' || geoJson.type === 'LineString');
+	}
+
 	function addLocalitiesLayer() {
 		if (!L || !map) return;
 
@@ -91,11 +104,35 @@
 			map.removeLayer(geoJsonLayer);
 		}
 
+		const validLocalities = localities.filter(loc => {
+			if (!loc.boundaryGeoJSON) return false;
+			
+			// Validate GeoJSON
+			let geoJson = loc.boundaryGeoJSON;
+			if (typeof geoJson === 'string') {
+				try {
+					geoJson = JSON.parse(geoJson);
+				} catch {
+					console.warn(`Invalid GeoJSON for locality ${loc.name}`, geoJson);
+					return false;
+				}
+			}
+			return isValidGeoJSON(geoJson);
+		});
+
+		if (validLocalities.length === 0) {
+			console.warn('No valid localities with GeoJSON found');
+			return;
+		}
+
 		const featureCollection = {
 			type: 'FeatureCollection',
-			features: localities
-				.filter(loc => loc.boundaryGeoJSON)
-				.map((locality) => ({
+			features: validLocalities.map((locality) => {
+				let geoJson = locality.boundaryGeoJSON;
+				if (typeof geoJson === 'string') {
+					geoJson = JSON.parse(geoJson);
+				}
+				return {
 					type: 'Feature',
 					properties: {
 						id: locality.id,
@@ -104,55 +141,60 @@
 						type: locality.type,
 						population: locality.population
 					},
-					geometry: locality.boundaryGeoJSON
-				}))
+					geometry: geoJson
+				};
+			})
 		};
 
-		geoJsonLayer = L.geoJSON(featureCollection, {
-			style: (feature: any) => {
-				const hasResults = colorMap[feature.properties.id];
-				return {
-					fillColor: getLocalityColor(feature.properties.id),
-					weight: hasResults ? 2 : 1,
-					opacity: 1,
-					color: hasResults ? '#ffffff' : 'rgba(255,255,255,0.3)',
-					fillOpacity: hasResults ? 0.7 : 0.4
-				};
-			},
-			onEachFeature: (feature: any, layer: any) => {
-				const locality = localities.find(l => l.id === feature.properties.id);
-				if (locality) {
-					layer.bindPopup(getPopupContent(locality), {
-						className: 'custom-popup'
+		try {
+			geoJsonLayer = L.geoJSON(featureCollection, {
+				style: (feature: any) => {
+					const hasResults = colorMap[feature.properties.id];
+					return {
+						fillColor: getLocalityColor(feature.properties.id),
+						weight: hasResults ? 2 : 1,
+						opacity: 1,
+						color: hasResults ? '#ffffff' : 'rgba(255,255,255,0.3)',
+						fillOpacity: hasResults ? 0.7 : 0.4
+					};
+				},
+				onEachFeature: (feature: any, layer: any) => {
+					const locality = localities.find(l => l.id === feature.properties.id);
+					if (locality) {
+						layer.bindPopup(getPopupContent(locality), {
+							className: 'custom-popup'
+						});
+					}
+
+					layer.on('mouseover', function () {
+						this.setStyle({
+							fillOpacity: 0.9,
+							weight: 3
+						});
+						this.bringToFront();
+					});
+
+					layer.on('mouseout', function () {
+						const hasResults = colorMap[feature.properties.id];
+						this.setStyle({
+							fillOpacity: hasResults ? 0.7 : 0.4,
+							weight: hasResults ? 2 : 1
+						});
+					});
+
+					layer.on('click', function () {
+						window.dispatchEvent(
+							new CustomEvent('localityClick', { detail: feature.properties })
+						);
 					});
 				}
+			}).addTo(map);
 
-				layer.on('mouseover', function () {
-					this.setStyle({
-						fillOpacity: 0.9,
-						weight: 3
-					});
-					this.bringToFront();
-				});
-
-				layer.on('mouseout', function () {
-					const hasResults = colorMap[feature.properties.id];
-					this.setStyle({
-						fillOpacity: hasResults ? 0.7 : 0.4,
-						weight: hasResults ? 2 : 1
-					});
-				});
-
-				layer.on('click', function () {
-					window.dispatchEvent(
-						new CustomEvent('localityClick', { detail: feature.properties })
-					);
-				});
+			if (featureCollection.features.length > 0) {
+				map.fitBounds(geoJsonLayer.getBounds());
 			}
-		}).addTo(map);
-
-		if (featureCollection.features.length > 0) {
-			map.fitBounds(geoJsonLayer.getBounds());
+		} catch (error) {
+			console.error('Error adding GeoJSON layer to map:', error);
 		}
 	}
 
