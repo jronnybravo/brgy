@@ -456,8 +456,16 @@
 									<td>
 										<strong>{person.lastName}, {person.firstName}</strong>
 									</td>
-									<td>{new Date(person.birthdate).toLocaleDateString('en-US')}</td>
-									<td>{person.sex === 'M' ? '♂ Male' : '♀ Female'}</td>
+									<td>
+										{#if person.birthdate}
+											{new Date(person.birthdate).toLocaleDateString('en-US')}
+										{/if}
+										&nbsp;
+									</td>
+									<td>
+										{person.sex || ''}
+										&nbsp;
+									</td>
 									<td>{person.barangay?.parent?.name || 'N/A'}</td>
 									<td>{person.barangay?.name || 'N/A'}</td>
 									<td>{person.purok || '-'}</td>
