@@ -20,7 +20,8 @@ export const GET: RequestHandler = async () => {
 		return json(featureCollection);
 	} catch (error) {
 		console.error('Error fetching localities GeoJSON:', error);
-		return json({ error: 'Failed to fetch localities', details: error.message }, { status: 500 });
+		const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+		return json({ error: 'Failed to fetch localities', details: errorMessage }, { status: 500 });
 	}
 };
 

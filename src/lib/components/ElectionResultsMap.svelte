@@ -71,158 +71,56 @@
 	});
 </script>
 
-<div class="election-results-section">
-	<div class="section-header">
-		<h2>🗳️ Election Results</h2>
-		<p class="subtitle">Governor Position</p>
+<div class="card shadow-sm border-0" style="display: flex; flex-direction: column;">
+	<div class="card-header" style="background-color: #f8f9fa; border-bottom: 1px solid #ecf0f1;">
+		<h5 class="mb-0 fw-bold" style="color: #2c3e50; font-size: 1.1rem;">🗳️ Election Results</h5>
+		<small style="color: #7f8c8d;">Governor Position</small>
 	</div>
 
-	{#if loading}
-		<div class="loading">Loading election map...</div>
-	{:else if error}
-		<div class="error">{error}</div>
-	{:else}
-		<div class="map-wrapper">
-			{#if electionResults?.candidates && electionResults.candidates.length > 0}
-				<div class="legend">
-					<h3>Candidates</h3>
-					<div class="legend-items">
-						{#each electionResults.candidates as candidate}
-							<div class="legend-item">
-								<div class="legend-color" style="background-color: {candidate.color}"></div>
-								<div class="legend-text">
-									<div class="candidate-name">{candidate.name}</div>
-									<div class="candidate-votes">{candidate.totalVotes.toLocaleString()} votes</div>
-								</div>
-							</div>
-						{/each}
+	<div class="card-body p-0 d-flex flex-column" style="overflow: hidden;">
+		{#if loading}
+			<div class="d-flex align-items-center justify-content-center p-5">
+				<div class="text-center">
+					<div class="spinner-border text-primary mb-3" role="status">
+						<span class="visually-hidden">Loading...</span>
 					</div>
+					<p class="text-muted">Loading election map...</p>
 				</div>
-			{/if}
-			<div class="map-container">
-				<Map {localities} {electionResults} {colorMap} />
 			</div>
-		</div>
-	{/if}
+		{:else if error}
+			<div class="alert alert-danger m-3 mb-0">{error}</div>
+		{:else}
+			<div class="d-flex flex-column gap-3 p-3" style="overflow: auto;">
+				{#if electionResults?.candidates && electionResults.candidates.length > 0}
+					<div class="card border-0" style="background-color: #f8f9fa;">
+						<div class="card-body p-3">
+							<h6 class="card-title fw-bold mb-2" style="color: #2c3e50;">Candidates</h6>
+							<div class="d-flex flex-wrap gap-2">
+								{#each electionResults.candidates as candidate}
+									<div class="badge p-2" style="background-color: {candidate.color}; color: white;">
+										<div style="font-size: 0.8rem; font-weight: 600;">{candidate.name}</div>
+										<div style="font-size: 0.75rem; opacity: 0.9;">{candidate.totalVotes.toLocaleString()} votes</div>
+									</div>
+								{/each}
+							</div>
+						</div>
+					</div>
+				{/if}
+				<div style="border-radius: 8px; overflow: hidden; border: 1px solid #ecf0f1;">
+					<Map {localities} {electionResults} {colorMap} />
+				</div>
+			</div>
+		{/if}
+	</div>
 </div>
 
 <style>
-	.election-results-section {
-		display: flex;
-		flex-direction: column;
-		height: 100%;
-		min-height: 0;
-	}
-
-	.section-header {
-		margin-bottom: 1rem;
-	}
-
-	.section-header h2 {
-		margin: 0 0 0.5rem 0;
-		font-size: 1.3rem;
-		color: rgba(255, 255, 255, 0.9);
-	}
-
-	.subtitle {
-		margin: 0;
-		font-size: 0.9rem;
-		color: rgba(255, 255, 255, 0.6);
-	}
-
-	.map-wrapper {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-		flex: 1;
-		min-height: 0;
-	}
-
-	.map-container {
-		width: 100%;
-		aspect-ratio: 1;
-		border-radius: 8px;
-		overflow: hidden;
-		background: rgba(255, 255, 255, 0.05);
-	}
-
-	.legend {
-		display: flex;
-		flex-direction: column;
-		background: rgba(255, 255, 255, 0.05);
-		border-radius: 8px;
-		padding: 1rem;
-		border: 1px solid rgba(255, 255, 255, 0.1);
-	}
-
-	.legend h3 {
-		margin: 0 0 0.75rem 0;
-		font-size: 0.95rem;
-		color: rgba(255, 255, 255, 0.9);
-		font-weight: 600;
-	}
-
-	.legend-items {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-	}
-
-	.legend-item {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.4rem 0.6rem;
-		border-radius: 4px;
-		background: rgba(255, 255, 255, 0.05);
-		transition: background-color 0.2s;
-	}
-
-	.legend-item:hover {
-		background: rgba(255, 255, 255, 0.1);
-	}
-
-	.legend-color {
-		width: 14px;
-		height: 14px;
-		border-radius: 3px;
-		flex-shrink: 0;
-		border: 1px solid rgba(255, 255, 255, 0.2);
-	}
-
-	.legend-text {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-	}
-
-	.candidate-name {
-		font-size: 0.8rem;
-		color: rgba(255, 255, 255, 0.9);
-		font-weight: 500;
-	}
-
-	.candidate-votes {
-		font-size: 0.7rem;
-		color: rgba(255, 255, 255, 0.6);
-	}
-
-	.loading,
-	.error {
-		flex: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 2rem;
-		text-align: center;
-		border-radius: 8px;
-		background: rgba(255, 255, 255, 0.05);
-		color: rgba(255, 255, 255, 0.6);
-		min-height: 300px;
-	}
-
-	.error {
-		color: #ff6b6b;
-		background: rgba(239, 68, 68, 0.1);
+	:global(.badge) {
+		display: inline-flex !important;
+		flex-direction: column !important;
+		align-items: center !important;
+		text-align: center !important;
+		padding: 0.5rem !important;
+		border-radius: 6px !important;
 	}
 </style>

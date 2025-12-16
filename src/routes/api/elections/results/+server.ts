@@ -69,7 +69,9 @@ export const POST: RequestHandler = async ({ request }) => {
 			await result.save();
 		} else {
 			result = ElectionResult.create(data);
-			await result.save();
+			if(result) {
+				await result.save();
+			}
 		}
 
 		return json(result, { status: 201 });

@@ -1,18 +1,16 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { getDataSource } from '$lib/database/data-source';
-import { People } from '$lib/database/entities/People';
+import { Person } from '$lib/database/entities/Person';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {
-		const dataSource = await getDataSource();
-		const peopleRepository = dataSource.getRepository(People);
 
-		const person = await peopleRepository.findOne({
+		const person = await Person.findOne({
 			where: { id: parseInt(params.id!) },
-			relations: ['barangay']
+			relations: { barangay: true}
 		});
-
+		
 		if (!person) {
 			return json({ error: 'Person not found' }, { status: 404 });
 		}
@@ -30,10 +28,8 @@ export const GET: RequestHandler = async ({ params }) => {
 export const PUT: RequestHandler = async ({ params, request }) => {
 	try {
 		const data = await request.json();
-		const dataSource = await getDataSource();
-		const peopleRepository = dataSource.getRepository(People);
 
-		const person = await peopleRepository.findOne({
+		const person = await Person.findOne({
 			where: { id: parseInt(params.id!) }
 		});
 
@@ -48,7 +44,7 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 		if (data.barangayId !== undefined) person.barangayId = data.barangayId;
 		if (data.purok !== undefined) person.purok = data.purok;
 
-		await peopleRepository.save(person);
+		await person.save();
 
 		return json(person);
 	} catch (error) {
@@ -62,10 +58,7 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 
 export const DELETE: RequestHandler = async ({ params }) => {
 	try {
-		const dataSource = await getDataSource();
-		const peopleRepository = dataSource.getRepository(People);
-
-		const person = await peopleRepository.findOne({
+		const person = await Person.findOne({
 			where: { id: parseInt(params.id!) }
 		});
 
@@ -73,8 +66,7 @@ export const DELETE: RequestHandler = async ({ params }) => {
 			return json({ error: 'Person not found' }, { status: 404 });
 		}
 
-		await peopleRepository.remove(person);
-
+		await person.remove();
 		return json({ success: true });
 	} catch (error) {
 		console.error('Error deleting person:', error);

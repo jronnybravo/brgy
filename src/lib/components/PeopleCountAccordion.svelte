@@ -53,223 +53,118 @@
 		expandedMunicipalities = expandedMunicipalities;
 	}
 
+	function handleAccordionClick(e: Event, munId: number) {
+		e.preventDefault();
+		toggleMunicipality(munId);
+	}
+
 	onMount(() => {
 		loadMunicipalitiesWithCounts();
 	});
 </script>
 
-	<div class="people-count-section">
-		<div class="section-header">
-			<h2>👥 People by Location</h2>
+<div class="card shadow-sm border-0" style="display: flex; flex-direction: column; height: 100%;">
+	<div class="card-header" style="background-color: #f8f9fa; border-bottom: 1px solid #ecf0f1;">
+		<div class="d-flex justify-content-between align-items-center">
+			<h5 class="mb-0 fw-bold" style="color: #2c3e50; font-size: 1.1rem;">👥 People by Location</h5>
 			{#if !loading && municipalities.length > 0}
-				<span class="total-badge">
+				<span class="badge" style="background-color: #3498db; color: white;">
 					{municipalities.reduce((sum, m) => sum + m.barangays.reduce((bSum, b) => bSum + b.peopleCount, 0), 0)} total
 				</span>
 			{/if}
 		</div>
+	</div>
 
+	<div class="card-body p-0 d-flex flex-column flex-grow-1" style="overflow-y: auto;">
 		{#if loading}
-			<div class="loading">Loading people statistics...</div>
+			<div class="text-center text-muted py-4">
+				<div class="spinner-border spinner-border-sm me-2" role="status">
+					<span class="visually-hidden">Loading...</span>
+				</div>
+				Loading people statistics...
+			</div>
 		{:else if error}
-			<div class="error">{error}</div>
+			<div class="alert alert-danger mb-0 m-3">{error}</div>
 		{:else if municipalities.length === 0}
-			<div class="empty-state">No municipalities found</div>
+			<div class="text-center text-muted py-4">No municipalities found</div>
 		{:else}
-			<div class="accordion">
+			<div class="list-group list-group-flush">
 				{#each municipalities as municipality (municipality.id)}
-					<div class="accordion-item">
+					<div style="border-bottom: 1px solid #ecf0f1;">
 						<button
-							class="accordion-header"
-							class:expanded={expandedMunicipalities.has(municipality.id)}
 							on:click={() => toggleMunicipality(municipality.id)}
+							style="
+								width: 100%;
+								text-align: left;
+								padding: 0.75rem 1rem;
+								border: none;
+								background-color: {expandedMunicipalities.has(municipality.id) ? '#e7f1ff' : 'transparent'};
+								cursor: pointer;
+								display: flex;
+								justify-content: space-between;
+								align-items: center;
+								transition: background-color 0.2s;
+							"
+							on:mouseenter={(e) => {
+								if (!expandedMunicipalities.has(municipality.id)) {
+									e.currentTarget.style.backgroundColor = '#f8f9fa';
+								}
+							}}
+							on:mouseleave={(e) => {
+								if (!expandedMunicipalities.has(municipality.id)) {
+									e.currentTarget.style.backgroundColor = 'transparent';
+								}
+							}}
 						>
-							<span class="accordion-toggle">
-								<svg
-									class="chevron"
-									width="20"
-									height="20"
-									viewBox="0 0 20 20"
-									fill="none"
-									xmlns="http://www.w3.org/2000/svg"
-								>
-									<path
-										d="M7 8L10 11L13 8"
-										stroke="currentColor"
-										stroke-width="2"
-										stroke-linecap="round"
-										stroke-linejoin="round"
-									/>
-								</svg>
-							</span>
-							<span class="municipality-name">{municipality.name}</span>
-							<span class="municipality-count">
+							<div style="display: flex; align-items: center; gap: 0.5rem; flex: 1;">
+								<span style="color: {expandedMunicipalities.has(municipality.id) ? '#3498db' : '#7f8c8d'}; transition: color 0.2s; font-size: 0.75rem;">
+									{expandedMunicipalities.has(municipality.id) ? '▼' : '▶'}
+								</span>
+								<span style="color: #2c3e50; font-weight: 500;">{municipality.name}</span>
+							</div>
+							<span class="badge bg-info">
 								{municipality.barangays.reduce((sum, b) => sum + b.peopleCount, 0)}
 							</span>
 						</button>
 
 						{#if expandedMunicipalities.has(municipality.id)}
-							<div class="accordion-panel">
-								<div class="barangays-list">
-									{#each municipality.barangays as barangay (barangay.id)}
-										<div class="barangay-item">
-											<span class="barangay-name">{barangay.name}</span>
-											<span class="barangay-count">{barangay.peopleCount}</span>
-										</div>
-									{/each}
-								</div>
+							<div style="background-color: #f8f9fa; border-top: 1px solid #ecf0f1;">
+								{#each municipality.barangays as barangay (barangay.id)}
+									<div
+										style="
+											display: flex;
+											justify-content: space-between;
+											align-items: center;
+											padding: 0.5rem 1rem 0.5rem 2.5rem;
+											border-bottom: 1px solid #ecf0f1;
+											border-left: 3px solid #3498db;
+											background-color: transparent;
+											transition: background-color 0.2s;
+										"
+										on:mouseenter={(e) => (e.currentTarget.style.backgroundColor = '#f0f7ff')}
+										on:mouseleave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+									>
+										<span style="color: #2c3e50; font-size: 0.95rem;">{barangay.name}</span>
+										<span class="badge bg-success">{barangay.peopleCount}</span>
+									</div>
+								{/each}
 							</div>
 						{/if}
 					</div>
 				{/each}
 			</div>
 		{/if}
-	</div><style>
-	.people-count-section {
-		display: flex;
-		flex-direction: column;
-		height: 100%;
-		min-height: 0;
+	</div>
+</div>
+
+<style>
+	:global(.badge.bg-info) {
+		background-color: #3498db !important;
+		color: white !important;
 	}
 
-	.section-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 1.5rem;
-	}
-
-	.section-header h2 {
-		margin: 0;
-		font-size: 1.3rem;
-		color: rgba(255, 255, 255, 0.9);
-	}
-
-	.total-badge {
-		background: linear-gradient(90deg, #a78bfa, #ec4899);
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-		background-clip: text;
-		font-weight: 600;
-		font-size: 0.95rem;
-	}
-
-	.accordion {
-		flex: 1;
-		overflow-y: auto;
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.accordion-item {
-		background: linear-gradient(135deg, rgba(167, 139, 250, 0.1) 0%, rgba(236, 72, 153, 0.05) 100%);
-		border: 1px solid rgba(167, 139, 250, 0.2);
-		border-radius: 8px;
-		overflow: hidden;
-	}
-
-	.accordion-header {
-		width: 100%;
-		display: flex;
-		justify-content: flex-start;
-		align-items: center;
-		gap: 0.75rem;
-		padding: 1rem;
-		background: rgba(167, 139, 250, 0.05);
-		border: none;
-		border-bottom: 1px solid rgba(167, 139, 250, 0.2);
-		cursor: pointer;
-		color: #a78bfa;
-		font-weight: 600;
-		font-size: 1rem;
-		transition: all 0.2s ease;
-	}
-
-	.accordion-header:hover {
-		background: rgba(167, 139, 250, 0.1);
-	}
-
-	.accordion-header.expanded {
-		border-bottom: none;
-	}
-
-	.accordion-toggle {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-	}
-
-	.chevron {
-		transition: transform 0.2s ease;
-	}
-
-	.accordion-header.expanded .chevron {
-		transform: rotate(180deg);
-	}
-
-	.municipality-name {
-		flex: 1;
-		text-align: left;
-	}
-
-	.municipality-count {
-		background: rgba(167, 139, 250, 0.3);
-		padding: 0.3rem 0.8rem;
-		border-radius: 20px;
-		font-size: 0.9rem;
-		font-weight: 600;
-		color: #fff;
-		flex-shrink: 0;
-	}
-
-	.accordion-panel {
-		padding: 0.5rem 0;
-		background: rgba(167, 139, 250, 0.02);
-	}
-
-	.barangays-list {
-		padding: 0;
-	}
-
-	.barangay-item {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.7rem 1rem;
-		border-bottom: 1px solid rgba(167, 139, 250, 0.1);
-		font-size: 0.9rem;
-	}
-
-	.barangay-item:last-child {
-		border-bottom: none;
-	}
-
-	.barangay-name {
-		color: rgba(255, 255, 255, 0.7);
-	}
-
-	.barangay-count {
-		background: rgba(236, 72, 153, 0.2);
-		padding: 0.2rem 0.6rem;
-		border-radius: 4px;
-		color: #ec4899;
-		font-weight: 600;
-		font-size: 0.85rem;
-	}
-
-	.loading,
-	.error,
-	.empty-state {
-		padding: 2rem;
-		text-align: center;
-		border-radius: 8px;
-		background: rgba(255, 255, 255, 0.05);
-		color: rgba(255, 255, 255, 0.6);
-	}
-
-	.error {
-		color: #ff6b6b;
-		background: rgba(239, 68, 68, 0.1);
+	:global(.badge.bg-success) {
+		background-color: #27ae60 !important;
+		color: white !important;
 	}
 </style>

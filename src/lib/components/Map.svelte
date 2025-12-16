@@ -166,7 +166,7 @@
 						});
 					}
 
-					layer.on('mouseover', function () {
+					layer.on('mouseover', function (this: any) {
 						this.setStyle({
 							fillOpacity: 0.9,
 							weight: 3
@@ -174,7 +174,7 @@
 						this.bringToFront();
 					});
 
-					layer.on('mouseout', function () {
+					layer.on('mouseout', function (this: any) {
 						const hasResults = colorMap[feature.properties.id];
 						this.setStyle({
 							fillOpacity: hasResults ? 0.7 : 0.4,
@@ -282,8 +282,7 @@
 <style>
 	.map-container {
 		width: 100%;
-		height: 100%;
-		min-height: 500px;
+		height: 500px;
 		border-radius: 8px;
 	}
 </style>

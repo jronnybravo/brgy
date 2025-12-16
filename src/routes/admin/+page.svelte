@@ -189,7 +189,8 @@
 			loadingPeople = true;
 			const response = await fetch('/api/people');
 			if (!response.ok) throw new Error('Failed to fetch people');
-			people = await response.json();
+			const result = await response.json();
+			people = result.data || result;
 		} catch (e) {
 			errorPeople = e instanceof Error ? e.message : 'An error occurred';
 			console.error('Error fetching people:', e);
@@ -314,32 +315,34 @@
 	<title>Admin - Barangay Mapping System</title>
 </svelte:head>
 
-<div class="container">
-	<header>
-		<div class="header-content">
+<div class="container-fluid p-4" style="background: linear-gradient(135deg, #ecf0f1 0%, #f8f9fa 100%); min-height: 100vh;">
+	<div class="mb-5">
+		<div class="d-flex justify-content-between align-items-center">
 			<div>
-				<h1>Admin Panel</h1>
-				<p>Manage localities and residents</p>
+				<h1 class="display-5 fw-bold" style="color: #2c3e50; font-size: 2rem;">Admin Panel</h1>
+				<p class="lead" style="color: #7f8c8d;">Manage localities and residents</p>
 			</div>
 			<nav>
-				<a href="/dashboard">← Back to Dashboard</a>
+				<a href="/dashboard" class="btn btn-outline-secondary">← Back to Dashboard</a>
 			</nav>
 		</div>
-	</header>
+	</div>
 
 	<main>
-		<div class="tabs">
+		<div class="nav nav-tabs mb-4 border-bottom-0">
 			<button
-				class="tab-button"
+				class="nav-link"
 				class:active={activeTab === 'localities'}
 				on:click={() => (activeTab = 'localities')}
+				style="color: #2c3e50; font-weight: 500; border-bottom: 3px solid transparent;"
 			>
 				📍 Localities
 			</button>
 			<button
-				class="tab-button"
+				class="nav-link"
 				class:active={activeTab === 'people'}
 				on:click={() => (activeTab = 'people')}
+				style="color: #2c3e50; font-weight: 500; border-bottom: 3px solid transparent;"
 			>
 				👥 People
 			</button>
@@ -347,46 +350,47 @@
 
 		<!-- ============= LOCALITIES TAB ============= -->
 		{#if activeTab === 'localities'}
-			<div class="tab-content">
-				<div class="actions">
-					<button on:click={handleNewLocality} class="btn btn-primary">+ Add New Locality</button>
-				</div>
+			<div class="mb-4">
+				<button on:click={handleNewLocality} class="btn btn-primary">+ Add New Locality</button>
+			</div>
 
-				{#if showLocalityForm}
-					<div class="form-container">
-						<div class="form-header">
-							<h2>{editingLocalityId ? 'Edit Locality' : 'Add New Locality'}</h2>
-							<button on:click={resetLocalityForm} class="btn-close">✕</button>
-						</div>
-
+			{#if showLocalityForm}
+				<div class="card mb-4 shadow-sm border-0" style="border-top: 4px solid #3498db;">
+					<div class="card-header" style="background-color: #f8f9fa; border-bottom: 1px solid #ecf0f1; display: flex; justify-content: space-between; align-items: center;">
+						<h5 class="mb-0 fw-bold" style="color: #2c3e50;">{editingLocalityId ? 'Edit Locality' : 'Add New Locality'}</h5>
+						<button on:click={resetLocalityForm} class="btn-close"></button>
+					</div>
+					<div class="card-body">
 						<form on:submit={handleLocalitySubmit}>
-							<div class="form-row">
-								<div class="form-group">
-									<label for="name">Name *</label>
+							<div class="row">
+								<div class="col-md-6 mb-3">
+									<label for="name" class="form-label">Name *</label>
 									<input
 										id="name"
 										type="text"
+										class="form-control"
 										bind:value={localityFormData.name}
 										required
 										placeholder="e.g., Barangay San Antonio"
 									/>
 								</div>
 
-								<div class="form-group">
-									<label for="code">Code</label>
+								<div class="col-md-6 mb-3">
+									<label for="code" class="form-label">Code</label>
 									<input
 										id="code"
 										type="text"
+										class="form-control"
 										bind:value={localityFormData.code}
 										placeholder="e.g., BRG-001"
 									/>
 								</div>
 							</div>
 
-							<div class="form-row">
-								<div class="form-group">
-									<label for="type">Type</label>
-									<select id="type" bind:value={localityFormData.type}>
+							<div class="row">
+								<div class="col-md-6 mb-3">
+									<label for="type" class="form-label">Type</label>
+									<select id="type" class="form-select" bind:value={localityFormData.type}>
 										<option value="barangay">Barangay</option>
 										<option value="district">District</option>
 										<option value="municipality">Municipality</option>
@@ -395,46 +399,46 @@
 									</select>
 								</div>
 
-								<div class="form-group">
-									<label for="population">Population</label>
+								<div class="col-md-6 mb-3">
+									<label for="population" class="form-label">Population</label>
 									<input
 										id="population"
 										type="number"
+										class="form-control"
 										bind:value={localityFormData.population}
 										placeholder="e.g., 5000"
 									/>
 								</div>
 							</div>
 
-							<div class="form-group">
-								<label for="boundary">Boundary GeoJSON *</label>
-								<div class="textarea-actions">
-									<button type="button" on:click={loadSampleGeoJSON} class="btn-link">
+							<div class="mb-3">
+								<label for="boundary" class="form-label">Boundary GeoJSON *</label>
+								<div class="mb-2 d-flex gap-2">
+									<button type="button" on:click={loadSampleGeoJSON} class="btn btn-sm btn-outline-secondary">
 										Load Sample
 									</button>
 									<a
 										href="https://geojson.io"
 										target="_blank"
 										rel="noopener noreferrer"
-										class="btn-link"
+										class="btn btn-sm btn-outline-secondary"
 									>
 										Create on geojson.io ↗
 									</a>
 								</div>
 								<textarea
 									id="boundary"
+									class="form-control"
 									bind:value={localityFormData.boundaryGeoJSON}
 									rows="10"
 									required
 									placeholder={`{"type":"Polygon","coordinates":[[[lng,lat],[lng,lat],...]]}`}
 								></textarea>
-								<small
-									>Must be a valid GeoJSON Polygon. Coordinates in [longitude, latitude] format.</small
-								>
+								<small class="form-text" style="color: #7f8c8d;">Must be a valid GeoJSON Polygon. Coordinates in [longitude, latitude] format.</small>
 							</div>
 
-							<div class="form-actions">
-								<button type="button" on:click={resetLocalityForm} class="btn">Cancel</button>
+							<div class="d-flex gap-2 mt-4">
+								<button type="button" on:click={resetLocalityForm} class="btn btn-outline-secondary">Cancel</button>
 								<button type="submit" class="btn btn-primary">
 									{editingLocalityId ? 'Update' : 'Create'} Locality
 								</button>
@@ -444,49 +448,54 @@
 				{/if}
 
 				{#if loading}
-					<div class="loading">Loading localities...</div>
+					<div class="alert alert-info">Loading localities...</div>
 				{:else if error}
-					<div class="error">{error}</div>
+					<div class="alert alert-danger">{error}</div>
 				{:else}
-					<div class="table-container">
-						<table>
-							<thead>
-								<tr>
-									<th>ID</th>
-									<th>Name</th>
-									<th>Code</th>
-									<th>Type</th>
-									<th>Population</th>
-									<th>Actions</th>
-								</tr>
-							</thead>
-							<tbody>
-								{#each localities as locality}
+					<div class="card shadow-sm border-0">
+						<div class="card-header" style="background-color: #f8f9fa;">
+							<h5 class="mb-0 fw-bold" style="color: #2c3e50;">Localities ({localities.length})</h5>
+						</div>
+						<div class="table-responsive">
+							<table class="table table-hover mb-0">
+								<thead class="table-light">
 									<tr>
-										<td>{locality.id}</td>
-										<td><strong>{locality.name}</strong></td>
-										<td>{locality.code || '—'}</td>
-										<td><span class="badge">{locality.type || 'N/A'}</span></td>
-										<td>{locality.population?.toLocaleString() || '—'}</td>
-										<td class="actions-cell">
-											<button on:click={() => handleEditLocality(locality)} class="btn-small">Edit</button>
-											<button
-												on:click={() => handleDeleteLocality(locality.id, locality.name)}
-												class="btn-small btn-danger"
-											>
-												Delete
-											</button>
-										</td>
+										<th style="color: #2c3e50;">ID</th>
+										<th style="color: #2c3e50;">Name</th>
+										<th style="color: #2c3e50;">Code</th>
+										<th style="color: #2c3e50;">Type</th>
+										<th style="color: #2c3e50;">Population</th>
+										<th style="color: #2c3e50;">Actions</th>
 									</tr>
-								{:else}
-									<tr>
-										<td colspan="6" class="empty-state">
-											No localities found. Add your first locality to get started!
-										</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
+								</thead>
+								<tbody>
+									{#each localities as locality}
+										<tr>
+											<td>{locality.id}</td>
+											<td><strong style="color: #2c3e50;">{locality.name}</strong></td>
+											<td>{locality.code || '—'}</td>
+											<td><span class="badge bg-info">{locality.type || 'N/A'}</span></td>
+											<td>{locality.population?.toLocaleString() || '—'}</td>
+											<td>
+												<button on:click={() => handleEditLocality(locality)} class="btn btn-sm btn-outline-primary">Edit</button>
+												<button
+													on:click={() => handleDeleteLocality(locality.id, locality.name)}
+													class="btn btn-sm btn-outline-danger"
+												>
+													Delete
+												</button>
+											</td>
+										</tr>
+									{:else}
+										<tr>
+											<td colspan="6" class="text-center text-muted py-4">
+												No localities found. Add your first locality to get started!
+											</td>
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						</div>
 					</div>
 				{/if}
 			</div>
@@ -494,36 +503,37 @@
 
 		<!-- ============= PEOPLE TAB ============= -->
 		{#if activeTab === 'people'}
-			<div class="tab-content">
-				<div class="actions">
-					<button on:click={handleNewPerson} class="btn btn-primary">+ Add New Person</button>
-				</div>
+			<div class="mb-4">
+				<button on:click={handleNewPerson} class="btn btn-primary">+ Add New Person</button>
+			</div>
 
-				{#if showPeopleForm}
-					<div class="form-container">
-						<div class="form-header">
-							<h2>{editingPeopleId ? 'Edit Person' : 'Add New Person'}</h2>
-							<button on:click={resetPeopleForm} class="btn-close">✕</button>
-						</div>
-
+			{#if showPeopleForm}
+				<div class="card mb-4 shadow-sm border-0" style="border-top: 4px solid #3498db;">
+					<div class="card-header" style="background-color: #f8f9fa; border-bottom: 1px solid #ecf0f1; display: flex; justify-content: space-between; align-items: center;">
+						<h5 class="mb-0 fw-bold" style="color: #2c3e50;">{editingPeopleId ? 'Edit Person' : 'Add New Person'}</h5>
+						<button on:click={resetPeopleForm} class="btn-close"></button>
+					</div>
+					<div class="card-body">
 						<form on:submit={handlePeopleSubmit}>
-							<div class="form-row">
-								<div class="form-group">
-									<label for="firstName">First Name *</label>
+							<div class="row">
+								<div class="col-md-6 mb-3">
+									<label for="firstName" class="form-label">First Name *</label>
 									<input
 										id="firstName"
 										type="text"
+										class="form-control"
 										bind:value={peopleFormData.firstName}
 										required
 										placeholder="e.g., Juan"
 									/>
 								</div>
 
-								<div class="form-group">
-									<label for="lastName">Last Name *</label>
+								<div class="col-md-6 mb-3">
+									<label for="lastName" class="form-label">Last Name *</label>
 									<input
 										id="lastName"
 										type="text"
+										class="form-control"
 										bind:value={peopleFormData.lastName}
 										required
 										placeholder="e.g., Dela Cruz"
@@ -531,30 +541,31 @@
 								</div>
 							</div>
 
-							<div class="form-row">
-								<div class="form-group">
-									<label for="birthdate">Birthdate *</label>
+							<div class="row">
+								<div class="col-md-6 mb-3">
+									<label for="birthdate" class="form-label">Birthdate *</label>
 									<input
 										id="birthdate"
 										type="date"
+										class="form-control"
 										bind:value={peopleFormData.birthdate}
 										required
 									/>
 								</div>
 
-								<div class="form-group">
-									<label for="sex">Sex *</label>
-									<select id="sex" bind:value={peopleFormData.sex} required>
+								<div class="col-md-6 mb-3">
+									<label for="sex" class="form-label">Sex *</label>
+									<select id="sex" class="form-select" bind:value={peopleFormData.sex} required>
 										<option value="M">Male</option>
 										<option value="F">Female</option>
 									</select>
 								</div>
 							</div>
 
-							<div class="form-row">
-								<div class="form-group">
-									<label for="barangayId">Barangay</label>
-									<select id="barangayId" bind:value={peopleFormData.barangayId}>
+							<div class="row">
+								<div class="col-md-6 mb-3">
+									<label for="barangayId" class="form-label">Barangay</label>
+									<select id="barangayId" class="form-select" bind:value={peopleFormData.barangayId}>
 										<option value="">-- Select Barangay --</option>
 										{#each barangays as barangay}
 											<option value={barangay.id}>{barangay.name}</option>
@@ -562,61 +573,68 @@
 									</select>
 								</div>
 
-								<div class="form-group">
-									<label for="purok">Purok</label>
+								<div class="col-md-6 mb-3">
+									<label for="purok" class="form-label">Purok</label>
 									<input
 										id="purok"
 										type="text"
+										class="form-control"
 										bind:value={peopleFormData.purok}
 										placeholder="e.g., Zone A or Purok 1"
 									/>
 								</div>
 							</div>
 
-							<div class="form-actions">
-								<button type="button" on:click={resetPeopleForm} class="btn">Cancel</button>
+							<div class="d-flex gap-2 mt-4">
+								<button type="button" on:click={resetPeopleForm} class="btn btn-outline-secondary">Cancel</button>
 								<button type="submit" class="btn btn-primary">
 									{editingPeopleId ? 'Update' : 'Create'} Person
 								</button>
 							</div>
 						</form>
 					</div>
-				{/if}
+				</div>
+			{/if}
 
-				{#if loadingPeople}
-					<div class="loading">Loading people...</div>
-				{:else if errorPeople}
-					<div class="error">{errorPeople}</div>
-				{:else}
-					<div class="table-container">
-						<table>
-							<thead>
+			{#if loadingPeople}
+				<div class="alert alert-info">Loading people...</div>
+			{:else if errorPeople}
+				<div class="alert alert-danger">{errorPeople}</div>
+			{:else}
+				<div class="card shadow-sm border-0">
+					<div class="card-header" style="background-color: #f8f9fa;">
+						<h5 class="mb-0 fw-bold" style="color: #2c3e50;">People ({people.length})</h5>
+					</div>
+					<div class="table-responsive">
+					<div class="table-responsive">
+						<table class="table table-hover mb-0">
+							<thead class="table-light">
 								<tr>
-									<th>ID</th>
-									<th>Name</th>
-									<th>Birthdate</th>
-									<th>Age</th>
-									<th>Sex</th>
-									<th>Barangay</th>
-									<th>Purok</th>
-									<th>Actions</th>
+									<th style="color: #2c3e50;">ID</th>
+									<th style="color: #2c3e50;">Name</th>
+									<th style="color: #2c3e50;">Birthdate</th>
+									<th style="color: #2c3e50;">Age</th>
+									<th style="color: #2c3e50;">Sex</th>
+									<th style="color: #2c3e50;">Barangay</th>
+									<th style="color: #2c3e50;">Purok</th>
+									<th style="color: #2c3e50;">Actions</th>
 								</tr>
 							</thead>
 							<tbody>
 								{#each people as person}
 									<tr>
 										<td>{person.id}</td>
-										<td><strong>{person.lastName}, {person.firstName}</strong></td>
+										<td><strong style="color: #2c3e50;">{person.lastName}, {person.firstName}</strong></td>
 										<td>{new Date(person.birthdate).toLocaleDateString()}</td>
 										<td>{getAgeFromBirthdate(new Date(person.birthdate))}</td>
 										<td>{person.sex === 'M' ? '♂️ Male' : '♀️ Female'}</td>
 										<td>{getBarangayName(person.barangayId)}</td>
 										<td>{person.purok || '—'}</td>
-										<td class="actions-cell">
-											<button on:click={() => handleEditPerson(person)} class="btn-small">Edit</button>
+										<td>
+											<button on:click={() => handleEditPerson(person)} class="btn btn-sm btn-outline-primary">Edit</button>
 											<button
 												on:click={() => handleDeletePerson(person.id, `${person.firstName} ${person.lastName}`)}
-												class="btn-small btn-danger"
+												class="btn btn-sm btn-outline-danger"
 											>
 												Delete
 											</button>
@@ -624,7 +642,7 @@
 									</tr>
 								{:else}
 									<tr>
-										<td colspan="8" class="empty-state">
+										<td colspan="8" class="text-center text-muted py-4">
 											No people found. Add your first person to get started!
 										</td>
 									</tr>
@@ -632,8 +650,8 @@
 							</tbody>
 						</table>
 					</div>
-				{/if}
-			</div>
+				</div>
+			{/if}
 		{/if}
 	</main>
 </div>
@@ -646,348 +664,25 @@
 			sans-serif;
 	}
 
-	.container {
-		min-height: 100vh;
-		background: #f5f5f5;
+	:global(.nav-link.active) {
+		background-color: #3498db !important;
+		color: white !important;
+		border-bottom-color: #3498db !important;
 	}
 
-	header {
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		color: white;
-		padding: 2rem;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-	}
-
-	.header-content {
-		max-width: 1200px;
-		margin: 0 auto;
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-	}
-
-	header h1 {
-		margin: 0 0 0.5rem 0;
-		font-size: 2rem;
-		font-weight: 600;
-	}
-
-	header p {
-		margin: 0;
-		opacity: 0.9;
-	}
-
-	nav a {
-		color: white;
-		text-decoration: none;
-		padding: 0.5rem 1rem;
-		border: 1px solid rgba(255, 255, 255, 0.3);
-		border-radius: 4px;
-		transition: background 0.2s;
-	}
-
-	nav a:hover {
-		background: rgba(255, 255, 255, 0.1);
-	}
-
-	main {
-		max-width: 1200px;
-		margin: 0 auto;
-		padding: 2rem;
-	}
-
-	.tabs {
-		display: flex;
-		gap: 1rem;
-		margin-bottom: 2rem;
-		border-bottom: 2px solid #e0e0e0;
-	}
-
-	.tab-button {
-		padding: 1rem 1.5rem;
-		border: none;
-		background: none;
-		cursor: pointer;
-		font-size: 1rem;
-		font-weight: 500;
-		color: #666;
-		border-bottom: 3px solid transparent;
-		transition: all 0.2s;
-	}
-
-	.tab-button:hover {
-		color: #333;
-	}
-
-	.tab-button.active {
-		color: #667eea;
-		border-bottom-color: #667eea;
-	}
-
-	.tab-content {
-		animation: fadeIn 0.2s;
-	}
-
-	@keyframes fadeIn {
-		from {
-			opacity: 0;
-		}
-		to {
-			opacity: 1;
-		}
-	}
-
-	.actions {
-		margin-bottom: 2rem;
-	}
-
-	.btn {
-		padding: 0.5rem 1rem;
-		border: 1px solid #ddd;
-		background: white;
-		border-radius: 4px;
-		cursor: pointer;
-		font-size: 1rem;
-		transition: all 0.2s;
-	}
-
-	.btn:hover {
-		background: #f5f5f5;
-	}
-
-	.btn-primary {
-		background: #667eea;
-		color: white;
-		border-color: #667eea;
-	}
-
-	.btn-primary:hover {
-		background: #5568d3;
-	}
-
-	.form-container {
-		background: white;
-		border-radius: 8px;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-		padding: 2rem;
-		margin-bottom: 2rem;
-	}
-
-	.form-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 1.5rem;
-	}
-
-	.form-header h2 {
-		margin: 0;
-		color: #333;
-	}
-
-	.btn-close {
-		background: none;
-		border: none;
-		font-size: 1.5rem;
-		cursor: pointer;
-		color: #999;
-		padding: 0;
-		width: 30px;
-		height: 30px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: 4px;
-	}
-
-	.btn-close:hover {
-		background: #f0f0f0;
-		color: #666;
-	}
-
-	.form-row {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 1rem;
-	}
-
-	.form-group {
-		margin-bottom: 1rem;
-	}
-
-	.form-group label {
-		display: block;
-		margin-bottom: 0.5rem;
-		font-weight: 500;
-		color: #333;
-	}
-
-	.form-group input,
-	.form-group select,
-	.form-group textarea {
-		width: 100%;
-		padding: 0.5rem;
-		border: 1px solid #ddd;
-		border-radius: 4px;
-		font-size: 1rem;
-		font-family: inherit;
-		box-sizing: border-box;
-	}
-
-	.form-group textarea {
-		font-family: 'Monaco', 'Courier New', monospace;
-		font-size: 0.9rem;
-	}
-
-	.form-group small {
-		display: block;
-		margin-top: 0.25rem;
-		color: #666;
-		font-size: 0.85rem;
-	}
-
-	.textarea-actions {
-		display: flex;
-		gap: 1rem;
-		margin-bottom: 0.5rem;
-	}
-
-	.btn-link {
-		background: none;
-		border: none;
-		color: #667eea;
-		cursor: pointer;
-		font-size: 0.9rem;
-		text-decoration: none;
-		padding: 0;
-	}
-
-	.btn-link:hover {
-		text-decoration: underline;
-	}
-
-	.form-actions {
-		display: flex;
-		gap: 1rem;
-		justify-content: flex-end;
-		margin-top: 1.5rem;
-	}
-
-	.table-container {
-		background: white;
-		border-radius: 8px;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-		overflow: hidden;
-		overflow-x: auto;
-	}
-
-	table {
-		width: 100%;
-		border-collapse: collapse;
-		min-width: 800px;
-	}
-
-	thead {
-		background: #f8f9fa;
-	}
-
-	th {
-		text-align: left;
-		padding: 1rem;
-		font-weight: 600;
-		color: #333;
-		border-bottom: 2px solid #e0e0e0;
-	}
-
-	td {
-		padding: 1rem;
-		border-bottom: 1px solid #f0f0f0;
-	}
-
-	tbody tr:hover {
-		background: #f9f9f9;
-	}
-
-	.badge {
-		display: inline-block;
-		padding: 0.25rem 0.75rem;
-		background: #e3f2fd;
-		color: #1976d2;
-		border-radius: 12px;
-		font-size: 0.85rem;
-		text-transform: capitalize;
-	}
-
-	.actions-cell {
-		display: flex;
-		gap: 0.5rem;
-		white-space: nowrap;
-	}
-
-	.btn-small {
-		padding: 0.25rem 0.75rem;
-		border: 1px solid #ddd;
-		background: white;
-		border-radius: 4px;
-		cursor: pointer;
-		font-size: 0.875rem;
-	}
-
-	.btn-small:hover {
-		background: #f5f5f5;
-	}
-
-	.btn-danger {
-		color: #d32f2f;
-		border-color: #d32f2f;
-	}
-
-	.btn-danger:hover {
-		background: #ffebee;
-	}
-
-	.empty-state {
-		text-align: center;
-		padding: 3rem !important;
-		color: #999;
-	}
-
-	.loading,
-	.error {
-		text-align: center;
-		padding: 2rem;
-		background: white;
-		border-radius: 8px;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-	}
-
-	.error {
-		color: #d32f2f;
+	:global(.nav-link:hover) {
+		background-color: rgba(52, 152, 219, 0.1) !important;
+		color: #3498db !important;
 	}
 
 	@media (max-width: 768px) {
-		.form-row {
-			grid-template-columns: 1fr;
-		}
-
-		.header-content {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: 1rem;
-		}
-
-		.tabs {
+		:global(.nav) {
+			flex-direction: row;
 			overflow-x: auto;
-		}
-
-		table {
-			font-size: 0.9rem;
-		}
-
-		th,
-		td {
-			padding: 0.75rem;
 		}
 	}
 </style>
+
+
+
 

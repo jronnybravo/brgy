@@ -9,10 +9,9 @@
 		};
 	}
 
-	export let data: PageData;
 
 	let people: any[] = [];
-	let loading = true;
+	let loading = false;
 	let error = '';
 	let showForm = false;
 	let editingId: number | null = null;
@@ -34,7 +33,9 @@
 		try {
 			const res = await fetch('/api/people');
 			if (!res.ok) throw new Error('Failed to load people');
-			people = await res.json();
+			const result = await res.json();
+			people = result.data || result;
+			console.log('Loaded people:', people);
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Error loading people';
 		}
@@ -148,459 +149,194 @@
 	);
 
 	onMount(async () => {
-		await Promise.all([loadPeople(), loadMunicipalitiesAndBarangays()]);
-		loading = false;
+		await loadPeople();
+		await loadMunicipalitiesAndBarangays();
 	});
 </script>
 
-<div class="people-page">
-	<div class="header">
-		<h1>People Management</h1>
-		<button on:click={() => (showForm = !showForm)} class="btn btn-primary">
+<div class="container-fluid p-4">
+	<div class="d-flex justify-content-between align-items-center mb-4">
+		<h1 class="display-5 fw-bold mb-0" style="color: #2c3e50; font-size: 2rem;">People Management</h1>
+		<button on:click={() => (showForm = !showForm)} class="btn btn-primary btn-lg">
 			{showForm ? '✕ Cancel' : '+ Add Person'}
 		</button>
 	</div>
 
 	{#if error}
-		<div class="error-message">{error}</div>
+		<div class="alert alert-danger alert-dismissible fade show" role="alert">
+			<strong>Error!</strong> {error}
+			<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+		</div>
 	{/if}
 
 	{#if showForm}
-		<div class="form-card">
-			<h2>{editingId ? 'Edit Person' : 'Add New Person'}</h2>
-
-			<div class="form-group">
-				<label for="firstName">First Name *</label>
-				<input
-					type="text"
-					id="firstName"
-					bind:value={formData.firstName}
-					placeholder="Enter first name"
-				/>
+		<div class="card mb-4 shadow-sm border-0" style="border-top: 4px solid #3498db;">
+			<div class="card-header" style="background-color: #f8f9fa; border-bottom: 1px solid #ecf0f1;">
+				<h5 class="mb-0 fw-bold" style="color: #2c3e50;">{editingId ? 'Edit Person' : 'Add New Person'}</h5>
 			</div>
+			<div class="card-body">
+				<form on:submit={savePerson}>
+					<div class="row mb-3">
+						<div class="col-md-6">
+							<label for="firstName" class="form-label fw-500">First Name *</label>
+							<input
+								type="text"
+								id="firstName"
+								class="form-control form-control-lg"
+								bind:value={formData.firstName}
+								placeholder="Enter first name"
+								required
+							/>
+						</div>
+						<div class="col-md-6">
+							<label for="lastName" class="form-label fw-500">Last Name *</label>
+							<input
+								type="text"
+								id="lastName"
+								class="form-control form-control-lg"
+								bind:value={formData.lastName}
+								placeholder="Enter last name"
+								required
+							/>
+						</div>
+					</div>
 
-			<div class="form-group">
-				<label for="lastName">Last Name *</label>
-				<input
-					type="text"
-					id="lastName"
-					bind:value={formData.lastName}
-					placeholder="Enter last name"
-				/>
-			</div>
+					<div class="row mb-3">
+						<div class="col-md-6">
+							<label for="birthdate" class="form-label fw-500">Birthdate *</label>
+							<input 
+								type="date" 
+								id="birthdate" 
+								class="form-control form-control-lg"
+								bind:value={formData.birthdate}
+								required
+							/>
+						</div>
+						<div class="col-md-6">
+							<label for="sex" class="form-label fw-500">Sex *</label>
+							<select id="sex" class="form-select form-select-lg" bind:value={formData.sex} required>
+								<option value="M">Male</option>
+								<option value="F">Female</option>
+							</select>
+						</div>
+					</div>
 
-			<div class="form-row">
-				<div class="form-group">
-					<label for="birthdate">Birthdate *</label>
-					<input type="date" id="birthdate" bind:value={formData.birthdate} />
-				</div>
+					<div class="row mb-3">
+						<div class="col-md-6">
+							<label for="municipality" class="form-label fw-500">Municipality *</label>
+							<select id="municipality" class="form-select form-select-lg" bind:value={selectedMunicipality} required>
+								<option value="">-- Select Municipality --</option>
+								{#each municipalities as municipality}
+									<option value={municipality.id}>{municipality.name}</option>
+								{/each}
+							</select>
+						</div>
+						<div class="col-md-6">
+							<label for="barangayId" class="form-label fw-500">Barangay *</label>
+							<select id="barangayId" class="form-select form-select-lg" bind:value={formData.barangayId} required>
+								<option value="">-- Select Barangay --</option>
+								{#each filteredBarangays as barangay}
+									<option value={barangay.id}>{barangay.name}</option>
+								{/each}
+							</select>
+						</div>
+					</div>
 
-				<div class="form-group">
-					<label for="sex">Sex *</label>
-					<select id="sex" bind:value={formData.sex}>
-						<option value="M">Male</option>
-						<option value="F">Female</option>
-					</select>
-				</div>
-			</div>
+					<div class="mb-4">
+						<label for="purok" class="form-label fw-500">Purok</label>
+						<input 
+							type="text" 
+							id="purok" 
+							class="form-control form-control-lg"
+							bind:value={formData.purok} 
+							placeholder="Enter purok" 
+						/>
+					</div>
 
-			<div class="form-row">
-				<div class="form-group">
-					<label for="municipality">Municipality *</label>
-					<select id="municipality" bind:value={selectedMunicipality}>
-						<option value="">-- Select Municipality --</option>
-						{#each municipalities as municipality}
-							<option value={municipality.id}>{municipality.name}</option>
-						{/each}
-					</select>
-				</div>
-
-				<div class="form-group">
-					<label for="barangayId">Barangay *</label>
-					<select id="barangayId" bind:value={formData.barangayId}>
-						<option value="">-- Select Barangay --</option>
-						{#each filteredBarangays as barangay}
-							<option value={barangay.id}>{barangay.name}</option>
-						{/each}
-					</select>
-				</div>
-			</div>
-
-			<div class="form-row">
-				<div class="form-group">
-					<label for="purok">Purok</label>
-					<input type="text" id="purok" bind:value={formData.purok} placeholder="Enter purok" />
-				</div>
-			</div>
-
-			<div class="form-actions">
-				<button on:click={savePerson} class="btn btn-success">
-					{editingId ? '💾 Update' : '💾 Create'}
-				</button>
-				<button on:click={resetForm} class="btn btn-secondary">Cancel</button>
+					<div class="d-flex gap-2">
+						<button type="submit" class="btn btn-success btn-lg">
+							{editingId ? '💾 Update' : '💾 Create'}
+						</button>
+						<button type="button" on:click={resetForm} class="btn btn-outline-secondary btn-lg">Cancel</button>
+					</div>
+				</form>
 			</div>
 		</div>
 	{/if}
 
-	<div class="list-section">
-		<div class="list-header">
-			<h2>People List ({filteredPeople.length})</h2>
-			<input
-				type="text"
-				placeholder="Search by name..."
-				bind:value={searchQuery}
-				class="search-input"
-			/>
+	<div class="card shadow-sm border-0" style="border-top: 4px solid #27ae60;">
+		<div class="card-header" style="background-color: #f8f9fa;">
+			<div class="d-flex justify-content-between align-items-center">
+				<h5 class="mb-0 fw-bold" style="color: #2c3e50;">People List ({filteredPeople.length})</h5>
+				<input
+					type="text"
+					placeholder="Search by name..."
+					bind:value={searchQuery}
+					class="form-control"
+					style="max-width: 300px;"
+				/>
+			</div>
 		</div>
-
-		{#if loading}
-			<div class="loading">Loading people...</div>
-		{:else if filteredPeople.length === 0}
-			<div class="empty-state">
-				<p>No people found</p>
-				<p class="empty-hint">
-					{searchQuery ? 'Try adjusting your search' : 'Add your first person to get started'}
-				</p>
-			</div>
-		{:else}
-			<div class="table-responsive">
-				<table class="people-table">
-					<thead>
-						<tr>
-							<th>Name</th>
-							<th>Birthdate</th>
-							<th>Sex</th>
-							<th>Barangay</th>
-							<th>Purok</th>
-							<th>Actions</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each filteredPeople as person}
+		<div class="card-body">
+			{#if loading}
+				<div class="text-center py-5 text-muted">
+					<div class="spinner-border me-2" role="status">
+						<span class="visually-hidden">Loading...</span>
+					</div>
+					Loading people...
+				</div>
+			{:else if filteredPeople.length === 0}
+				<div class="text-center py-5 text-muted">
+					<p class="mb-0 fs-5">No people found</p>
+					<small class="text-muted">
+						{searchQuery ? 'Try adjusting your search' : 'Add your first person to get started'}
+					</small>
+				</div>
+			{:else}
+				<div class="table-responsive">
+					<table class="table table-hover table-striped">
+						<thead class="table-light">
 							<tr>
-								<td class="name">
-									<strong>{person.lastName}, {person.firstName}</strong>
-								</td>
-								<td>{new Date(person.birthdate).toLocaleDateString('en-US')}</td>
-								<td>{person.sex === 'M' ? '♂ Male' : '♀ Female'}</td>
-								<td>{person.locality?.name || 'N/A'}</td>
-								<td>{person.purok || '-'}</td>
-								<td class="actions">
-									<button on:click={() => editPerson(person)} class="btn-sm btn-edit">
-										✎ Edit
-									</button>
-									<button on:click={() => deletePerson(person.id)} class="btn-sm btn-delete">
-										🗑 Delete
-									</button>
-								</td>
+								<th scope="col">Name</th>
+								<th scope="col">Birthdate</th>
+								<th scope="col">Sex</th>
+								<th scope="col">Town</th>
+								<th scope="col">Barangay</th>
+								<th scope="col">Purok</th>
+								<th scope="col" class="text-center">Actions</th>
 							</tr>
-						{/each}
-					</tbody>
-				</table>
-			</div>
-		{/if}
+						</thead>
+						<tbody>
+							{#each filteredPeople as person}
+								<tr>
+									<td>
+										<strong>{person.lastName}, {person.firstName}</strong>
+									</td>
+									<td>{new Date(person.birthdate).toLocaleDateString('en-US')}</td>
+									<td>{person.sex === 'M' ? '♂ Male' : '♀ Female'}</td>
+									<td>{person.barangay?.parent?.name || 'N/A'}</td>
+									<td>{person.barangay?.name || 'N/A'}</td>
+									<td>{person.purok || '-'}</td>
+									<td class="text-center">
+										<button on:click={() => editPerson(person)} class="btn btn-sm btn-outline-primary me-1">
+											✎ Edit
+										</button>
+										<button on:click={() => deletePerson(person.id)} class="btn btn-sm btn-outline-danger">
+											🗑 Delete
+										</button>
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{/if}
+		</div>
 	</div>
 </div>
 
 <style>
-	.people-page {
-		padding: 2rem;
-		max-width: 1200px;
-		margin: 0 auto;
-	}
-
-	.header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 2rem;
-	}
-
-	.header h1 {
-		margin: 0;
-		font-size: 2rem;
-		background: linear-gradient(90deg, #fff, #a78bfa);
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-		background-clip: text;
-	}
-
-	.error-message {
-		padding: 1rem;
-		margin-bottom: 1rem;
-		background: rgba(239, 68, 68, 0.1);
-		border: 1px solid rgba(239, 68, 68, 0.3);
-		color: #ff6b6b;
-		border-radius: 8px;
-	}
-
-	.form-card {
-		background: linear-gradient(135deg, rgba(167, 139, 250, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%);
-		border: 1px solid rgba(167, 139, 250, 0.3);
-		border-radius: 12px;
-		padding: 2rem;
-		margin-bottom: 2rem;
-	}
-
-	.form-card h2 {
-		margin: 0 0 1.5rem 0;
-		font-size: 1.3rem;
-		color: #fff;
-	}
-
-	.form-group {
-		display: flex;
-		flex-direction: column;
-		margin-bottom: 1.5rem;
-	}
-
-	.form-group label {
-		margin-bottom: 0.5rem;
-		color: rgba(255, 255, 255, 0.8);
-		font-size: 0.9rem;
-		font-weight: 500;
-	}
-
-	.form-group input,
-	.form-group select {
-		padding: 0.75rem;
-		background: rgba(0, 0, 0, 0.3);
-		border: 1px solid rgba(167, 139, 250, 0.3);
-		border-radius: 6px;
-		color: #fff;
-		font-size: 1rem;
-	}
-
-	.form-group input:focus,
-	.form-group select:focus {
-		outline: none;
-		border-color: #a78bfa;
-		background: rgba(0, 0, 0, 0.4);
-	}
-
-	.form-group input::placeholder {
-		color: rgba(255, 255, 255, 0.4);
-	}
-
-	.form-row {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 1rem;
-	}
-
-	.form-actions {
-		display: flex;
-		gap: 1rem;
-		margin-top: 1.5rem;
-	}
-
-	.btn {
-		padding: 0.75rem 1.5rem;
-		border: none;
-		border-radius: 6px;
-		cursor: pointer;
-		font-size: 1rem;
-		font-weight: 500;
-		transition: all 0.2s;
-	}
-
-	.btn-primary {
-		background: linear-gradient(90deg, #a78bfa, #ec4899);
-		color: #fff;
-	}
-
-	.btn-primary:hover {
-		transform: translateY(-2px);
-		box-shadow: 0 4px 12px rgba(167, 139, 250, 0.3);
-	}
-
-	.btn-success {
-		background: linear-gradient(90deg, #10b981, #059669);
-		color: #fff;
-	}
-
-	.btn-success:hover {
-		transform: translateY(-2px);
-		box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-	}
-
-	.btn-secondary {
-		background: rgba(255, 255, 255, 0.1);
-		color: rgba(255, 255, 255, 0.8);
-		border: 1px solid rgba(255, 255, 255, 0.2);
-	}
-
-	.btn-secondary:hover {
-		background: rgba(255, 255, 255, 0.15);
-		border-color: rgba(255, 255, 255, 0.3);
-	}
-
-	.list-section {
-		margin-top: 2rem;
-	}
-
-	.list-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 1.5rem;
-		gap: 1rem;
-	}
-
-	.list-header h2 {
-		margin: 0;
-		font-size: 1.5rem;
-		color: rgba(255, 255, 255, 0.9);
-	}
-
-	.search-input {
-		padding: 0.75rem 1rem;
-		background: rgba(0, 0, 0, 0.3);
-		border: 1px solid rgba(167, 139, 250, 0.3);
-		border-radius: 6px;
-		color: #fff;
-		font-size: 1rem;
-		min-width: 250px;
-	}
-
-	.search-input:focus {
-		outline: none;
-		border-color: #a78bfa;
-	}
-
-	.search-input::placeholder {
-		color: rgba(255, 255, 255, 0.4);
-	}
-
-	.loading,
-	.empty-state {
-		padding: 3rem 2rem;
-		text-align: center;
-		background: rgba(255, 255, 255, 0.05);
-		border-radius: 8px;
-		color: rgba(255, 255, 255, 0.6);
-	}
-
-	.empty-hint {
-		font-size: 0.9rem;
-		margin-top: 0.5rem;
-		color: rgba(255, 255, 255, 0.4);
-	}
-
-	.table-responsive {
-		overflow-x: auto;
-	}
-
-	.people-table {
-		width: 100%;
-		border-collapse: collapse;
-		color: #fff;
-	}
-
-	.people-table thead {
-		background: rgba(167, 139, 250, 0.1);
-		border-bottom: 2px solid rgba(167, 139, 250, 0.3);
-	}
-
-	.people-table th {
-		padding: 1rem;
-		text-align: left;
-		font-weight: 600;
-		color: #a78bfa;
-		font-size: 0.9rem;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.people-table td {
-		padding: 1rem;
-		border-bottom: 1px solid rgba(167, 139, 250, 0.2);
-	}
-
-	.people-table tbody tr {
-		transition: all 0.2s;
-	}
-
-	.people-table tbody tr:hover {
-		background: rgba(167, 139, 250, 0.05);
-	}
-
-	.name {
-		font-weight: 600;
-	}
-
-	.actions {
-		display: flex;
-		gap: 0.5rem;
-	}
-
-	.btn-sm {
-		padding: 0.5rem 0.75rem;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-		font-size: 0.85rem;
-		transition: all 0.2s;
-	}
-
-	.btn-edit {
-		background: rgba(167, 139, 250, 0.2);
-		color: #a78bfa;
-		border: 1px solid rgba(167, 139, 250, 0.3);
-	}
-
-	.btn-edit:hover {
-		background: rgba(167, 139, 250, 0.3);
-		border-color: rgba(167, 139, 250, 0.5);
-	}
-
-	.btn-delete {
-		background: rgba(239, 68, 68, 0.2);
-		color: #ff6b6b;
-		border: 1px solid rgba(239, 68, 68, 0.3);
-	}
-
-	.btn-delete:hover {
-		background: rgba(239, 68, 68, 0.3);
-		border-color: rgba(239, 68, 68, 0.5);
-	}
-
-	@media (max-width: 768px) {
-		.people-page {
-			padding: 1rem;
-		}
-
-		.header {
-			flex-direction: column;
-			gap: 1rem;
-			align-items: flex-start;
-		}
-
-		.list-header {
-			flex-direction: column;
-			align-items: flex-start;
-		}
-
-		.search-input {
-			min-width: auto;
-			width: 100%;
-		}
-
-		.form-row {
-			grid-template-columns: 1fr;
-		}
-
-		.table-responsive {
-			font-size: 0.85rem;
-		}
-
-		.people-table th,
-		.people-table td {
-			padding: 0.75rem;
-		}
-
-		.actions {
-			flex-direction: column;
-		}
+	:global(.fw-500) {
+		font-weight: 500 !important;
 	}
 </style>

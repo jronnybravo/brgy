@@ -4,18 +4,22 @@
 	// Unauthenticated users go to /login
 </script>
 
-<div class="redirect-container">
-	<p>Redirecting...</p>
+<div class="d-flex align-items-center justify-content-center min-vh-100 bg-gradient">
+	<div class="text-center">
+		<h1 class="display-4 fw-bold mb-4 text-primary">Redirecting...</h1>
+		<div class="spinner-border text-primary" role="status">
+			<span class="visually-hidden">Loading...</span>
+		</div>
+		<p class="text-muted mt-3">Please wait while we redirect you to your destination.</p>
+	</div>
 </div>
 
 <style>
-	.redirect-container {
-		display: flex;
-		justify-content: center;
-		align-items: center;
+	:global(.bg-gradient) {
+		background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+	}
+
+	:global(.min-vh-100) {
 		min-height: 100vh;
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		color: white;
-		font-size: 1.2rem;
 	}
 </style>

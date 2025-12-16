@@ -7,9 +7,11 @@ import {
 	Tree,
 	TreeChildren,
 	TreeParent,
-	BaseEntity
+	BaseEntity,
+	OneToMany
 } from 'typeorm';
 import type { GeoJSON } from 'geojson';
+import { Person } from './Person';
 
 @Entity('localities')
 @Tree('closure-table')
@@ -72,6 +74,9 @@ export class Locality extends BaseEntity {
 
 	@UpdateDateColumn()
 	updatedAt!: Date;
+
+	@OneToMany(() => Person, (person) => person.barangay)
+	persons!: Person[];
 
 	// Helper method to get coordinates for Leaflet
 	getBounds(): [number, number][][] | null {

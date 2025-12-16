@@ -65,184 +65,102 @@
 	<title>Register - Barangay Mapping System</title>
 </svelte:head>
 
-<div class="register-container">
-	<div class="register-box">
-		<h1>Barangay Mapping System</h1>
-		<h2>Create Account</h2>
+<div class="d-flex align-items-center justify-content-center min-vh-100 bg-light">
+	<div class="container">
+		<div class="row justify-content-center">
+			<div class="col-md-5">
+				<div class="card shadow-lg border-0">
+					<div class="card-body p-5">
+						<h1 class="card-title text-center mb-2 fw-bold text-primary">Barangay Mapping System</h1>
+						<h2 class="card-subtitle text-center text-muted mb-4 fs-5">Create Your Account</h2>
 
-		{#if error}
-			<div class="error-message">{error}</div>
-		{/if}
+						{#if error}
+							<div class="alert alert-danger alert-dismissible fade show" role="alert">
+								<strong>Error!</strong> {error}
+								<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+							</div>
+						{/if}
 
-		<form on:submit={handleRegister}>
-			<div class="form-group">
-				<label for="username">Username</label>
-				<input
-					type="text"
-					id="username"
-					bind:value={formData.username}
-					required
-					disabled={loading}
-					placeholder="Choose a username"
-				/>
+						<form on:submit={handleRegister}>
+							<div class="mb-3">
+								<label for="username" class="form-label fw-500">Username</label>
+								<input
+									type="text"
+									class="form-control form-control-lg"
+									id="username"
+									bind:value={formData.username}
+									required
+									disabled={loading}
+									placeholder="Choose a username"
+								/>
+							</div>
+
+							<div class="mb-3">
+								<label for="email" class="form-label fw-500">Email</label>
+								<input
+									type="email"
+									class="form-control form-control-lg"
+									id="email"
+									bind:value={formData.email}
+									required
+									disabled={loading}
+									placeholder="Enter your email"
+								/>
+							</div>
+
+							<div class="mb-3">
+								<label for="password" class="form-label fw-500">Password</label>
+								<input
+									type="password"
+									class="form-control form-control-lg"
+									id="password"
+									bind:value={formData.password}
+									required
+									disabled={loading}
+									placeholder="At least 6 characters"
+								/>
+							</div>
+
+							<div class="mb-4">
+								<label for="confirmPassword" class="form-label fw-500">Confirm Password</label>
+								<input
+									type="password"
+									class="form-control form-control-lg"
+									id="confirmPassword"
+									bind:value={formData.confirmPassword}
+									required
+									disabled={loading}
+									placeholder="Confirm your password"
+								/>
+							</div>
+
+							<button type="submit" class="btn btn-primary btn-lg w-100 fw-600" disabled={loading}>
+								{loading ? 'Creating Account...' : 'Create Account'}
+							</button>
+						</form>
+
+						<hr class="my-4" />
+
+						<p class="text-center text-muted mb-0">
+							Already have an account? <a href="/login" class="text-primary fw-600 text-decoration-none">Login here</a>
+						</p>
+					</div>
+				</div>
 			</div>
-
-			<div class="form-group">
-				<label for="email">Email</label>
-				<input
-					type="email"
-					id="email"
-					bind:value={formData.email}
-					required
-					disabled={loading}
-					placeholder="Enter your email"
-				/>
-			</div>
-
-			<div class="form-group">
-				<label for="password">Password</label>
-				<input
-					type="password"
-					id="password"
-					bind:value={formData.password}
-					required
-					disabled={loading}
-					placeholder="At least 6 characters"
-				/>
-			</div>
-
-			<div class="form-group">
-				<label for="confirmPassword">Confirm Password</label>
-				<input
-					type="password"
-					id="confirmPassword"
-					bind:value={formData.confirmPassword}
-					required
-					disabled={loading}
-					placeholder="Confirm your password"
-				/>
-			</div>
-
-			<button type="submit" disabled={loading}>
-				{loading ? 'Creating Account...' : 'Create Account'}
-			</button>
-		</form>
-
-		<p class="login-link">
-			Already have an account? <a href="/login">Login here</a>
-		</p>
+		</div>
 	</div>
 </div>
 
 <style>
-	.register-container {
-		display: flex;
-		justify-content: center;
-		align-items: center;
+	:global(.min-vh-100) {
 		min-height: 100vh;
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		padding: 20px;
 	}
 
-	.register-box {
-		background: white;
-		padding: 40px;
-		border-radius: 10px;
-		box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-		width: 100%;
-		max-width: 400px;
-	}
-
-	h1 {
-		text-align: center;
-		color: #333;
-		margin-bottom: 10px;
-		font-size: 1.5rem;
-	}
-
-	h2 {
-		text-align: center;
-		color: #666;
-		margin-bottom: 30px;
-		font-size: 1.2rem;
-	}
-
-	.error-message {
-		background-color: #fee;
-		color: #c33;
-		padding: 10px;
-		border-radius: 5px;
-		margin-bottom: 20px;
-		text-align: center;
-		font-size: 0.9rem;
-	}
-
-	.form-group {
-		margin-bottom: 20px;
-	}
-
-	label {
-		display: block;
-		margin-bottom: 5px;
-		color: #333;
+	:global(.fw-500) {
 		font-weight: 500;
 	}
 
-	input {
-		width: 100%;
-		padding: 12px;
-		border: 1px solid #ddd;
-		border-radius: 5px;
-		font-size: 16px;
-		box-sizing: border-box;
-	}
-
-	input:focus {
-		outline: none;
-		border-color: #667eea;
-	}
-
-	input:disabled {
-		background-color: #f5f5f5;
-		cursor: not-allowed;
-	}
-
-	button {
-		width: 100%;
-		padding: 12px;
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		color: white;
-		border: none;
-		border-radius: 5px;
-		font-size: 16px;
+	:global(.fw-600) {
 		font-weight: 600;
-		cursor: pointer;
-		transition: transform 0.2s;
-	}
-
-	button:hover:not(:disabled) {
-		transform: translateY(-2px);
-		box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-	}
-
-	button:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-
-	.login-link {
-		text-align: center;
-		margin-top: 20px;
-		color: #666;
-	}
-
-	.login-link a {
-		color: #667eea;
-		text-decoration: none;
-		font-weight: 600;
-	}
-
-	.login-link a:hover {
-		text-decoration: underline;
 	}
 </style>
