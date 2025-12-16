@@ -79,10 +79,7 @@
 </div>
 
 <style>
-	:global(body) {
-		margin: 0;
-		padding: 0;
-	}
+
 
 	.navbar-sidebar {
 		border-right: 1px solid #343a40;

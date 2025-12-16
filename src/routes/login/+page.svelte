@@ -105,12 +105,4 @@
 	:global(.min-vh-100) {
 		min-height: 100vh;
 	}
-
-	:global(.fw-500) {
-		font-weight: 500;
-	}
-
-	:global(.fw-600) {
-		font-weight: 600;
-	}
 </style>
