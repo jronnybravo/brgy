@@ -445,7 +445,8 @@
 							</div>
 						</form>
 					</div>
-				{/if}
+				</div>
+			{/if}
 
 				{#if loading}
 					<div class="alert alert-info">Loading localities...</div>
@@ -498,7 +499,6 @@
 						</div>
 					</div>
 				{/if}
-			</div>
 		{/if}
 
 		<!-- ============= PEOPLE TAB ============= -->
@@ -606,7 +606,6 @@
 						<h5 class="mb-0 fw-bold" style="color: #2c3e50;">People ({people.length})</h5>
 					</div>
 					<div class="table-responsive">
-					<div class="table-responsive">
 						<table class="table table-hover mb-0">
 							<thead class="table-light">
 								<tr>
@@ -657,8 +656,6 @@
 </div>
 
 <style>
-
-
 	:global(.nav-link.active) {
 		background-color: #3498db !important;
 		color: white !important;
