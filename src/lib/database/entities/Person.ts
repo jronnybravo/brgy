@@ -17,8 +17,14 @@ export class Person extends BaseEntity {
 	@Column({ type: 'varchar' })
 	firstName!: string;
 
-	@Column({ type: 'date' })
-	birthdate!: Date;
+	@Column({ type: 'varchar', nullable: true })
+	middleName: string | null = null;
+
+	@Column({ type: 'varchar', nullable: true })
+	extensionName: string | null = null;
+
+	@Column({ type: 'date', nullable: true })
+	birthdate: Date | null = null;
 
 	@Column({ type: 'enum', enum: Sex, nullable: true })
 	sex: Sex | null = null;
@@ -34,6 +40,15 @@ export class Person extends BaseEntity {
 
 	@Column({ type: 'boolean', nullable: true })
 	isSupporter: boolean | null = null;
+
+	@Column({ type: 'boolean', nullable: true })
+	isLeader: boolean | null = null;
+
+	@Column({ type: 'varchar', nullable: true })
+	precinct: string | null = null;
+
+	@Column({ type: 'text', nullable: true })
+	comments: string | null = null;
 
 	@CreateDateColumn()
 	createdAt!: Date;
