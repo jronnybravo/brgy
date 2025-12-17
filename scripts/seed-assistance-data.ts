@@ -40,8 +40,19 @@ async function seedPeople(barangayIds: number[]) {
 
 	// Create 50-150 people per barangay
 	for (const barangayId of barangayIds) {
-		const peopleCount = faker.number.int({ min: 50, max: 150 });
+		const barangayPeople = await Person.find({
+			where: { barangayId }
+		});
 
+		if(barangayPeople.length > 0) {
+			for(const person of barangayPeople) {
+				await seedFinancialAssistances(person);
+				await seedMedicineAssistances(person);
+			}
+			continue;
+		}
+
+		const peopleCount = faker.number.int({ min: 50, max: 150 });
 		for (let i = 0; i < peopleCount; i++) {
 			const person = new Person();
 			const firstName = faker.person.firstName();
