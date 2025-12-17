@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
-import { Assistance } from '$lib/database/entities/Assistance';
+import { Assistance, FinancialAssistance, MedicineAssistance, FinancialAssistanceType } from '$lib/database/entities/Assistance';
 
 export const GET: RequestHandler = async ({ url }) => {
 	try {
@@ -11,15 +11,24 @@ export const GET: RequestHandler = async ({ url }) => {
 			where.personId = parseInt(personId);
 		}
 
-		const assistances = await Assistance.find({
+		const financialAssistances = await FinancialAssistance.find({
 			where: Object.keys(where).length > 0 ? where : {},
 			relations: { person: true},
-			order: { date_disbursed: 'DESC', createdAt: 'DESC' }
+			order: { disbursed_date: 'DESC', createdAt: 'DESC' }
+		});
+
+		const medicineAssistances = await MedicineAssistance.find({
+			where: Object.keys(where).length > 0 ? where : {},
+			relations: { person: true},
+			order: { disbursed_date: 'DESC', createdAt: 'DESC' }
 		});
 
 		return json({
 			success: true,
-			data: assistances
+			data: {
+				financialAssistances,
+				medicineAssistances
+			}
 		});
 	} catch (error) {
 		console.error('Error fetching assistances:', error);
@@ -34,32 +43,71 @@ export const POST: RequestHandler = async ({ request }) => {
 	try {
 		const data = await request.json();
 
-		if (!data.personId || !data.type || !data.date_disbursed || data.amount === undefined) {
-			return json({ success: false, error: 'Missing required fields' }, { status: 400 });
+		// Determine if this is a financial or medicine assistance
+		const isFinancial = data.type && data.amount !== undefined && !data.medicine_name;
+		const isMedicine = data.medicine_name && !data.type;
+
+		if (!data.personId || !data.date_disbursed) {
+			return json({ success: false, error: 'Missing required fields: personId and date_disbursed' }, { status: 400 });
 		}
 
-		if (!['AICS', '4PS', 'MAIP'].includes(data.type)) {
-			return json({ success: false, error: 'Invalid assistance type' }, { status: 400 });
+		if (isFinancial) {
+			// Handle Financial Assistance
+			if (!data.type || data.amount === undefined) {
+				return json({ success: false, error: 'Missing required fields for financial assistance: type and amount' }, { status: 400 });
+			}
+
+			const validTypes = Object.values(FinancialAssistanceType);
+			if (!validTypes.includes(data.type)) {
+				return json({ success: false, error: `Invalid assistance type. Must be one of: ${validTypes.join(', ')}` }, { status: 400 });
+			}
+
+			const assistance = new FinancialAssistance();
+			assistance.personId = parseInt(data.personId);
+			assistance.type = data.type;
+			assistance.disbursed_date = new Date(data.date_disbursed);
+			assistance.value = parseFloat(data.amount);
+			await assistance.save();
+
+			// Reload with person info
+			const saved = await FinancialAssistance.findOne({
+				where: { id: assistance.id },
+				relations: { person: true }
+			});
+
+			return json({
+				success: true,
+				data: saved
+			}, { status: 201 });
+		} else if (isMedicine) {
+			// Handle Medicine Assistance
+			if (!data.medicine_name || !data.quantity) {
+				return json({ success: false, error: 'Missing required fields for medicine assistance: medicine_name and quantity' }, { status: 400 });
+			}
+
+			const assistance = new MedicineAssistance();
+			assistance.personId = parseInt(data.personId);
+			assistance.medicine_name = data.medicine_name;
+			assistance.generic_name = data.generic_name || null;
+			assistance.dosage = data.dosage || null;
+			assistance.quantity = parseInt(data.quantity);
+			assistance.unit = data.unit || null;
+			assistance.disbursed_date = new Date(data.date_disbursed);
+			await assistance.save();
+
+			// Reload with person info
+			const saved = await MedicineAssistance.findOne({
+				where: { id: assistance.id },
+				relations: { person: true }
+			});
+
+			return json({
+				success: true,
+				data: saved
+			}, { status: 201 });
+		} else {
+			return json({ success: false, error: 'Unable to determine assistance type' }, { status: 400 });
 		}
-
-		const assistance = new Assistance();
-		assistance.personId = parseInt(data.personId);
-		assistance.type = data.type;
-		assistance.date_disbursed = new Date(data.date_disbursed);
-		assistance.amount = parseFloat(data.amount);
-
-		await assistance.save();
-
-		// Reload with person info
-		const saved = await Assistance.findOne({
-			where: { id: assistance.id },
-			relations: ['person']
-		});
-
-		return json({
-			success: true,
-			data: saved
-		}, { status: 201 });
 	} catch (error) {
 		console.error('Error creating assistance:', error);
 		return json(

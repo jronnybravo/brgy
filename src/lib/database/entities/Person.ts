@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn, BaseEntity } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn, BaseEntity, OneToMany } from 'typeorm';
 import { Locality } from './Locality';
+import { Assistance, FinancialAssistance, MedicineAssistance } from './Assistance';
 
 export enum Sex {
 	MALE = 'Male',
@@ -55,4 +56,10 @@ export class Person extends BaseEntity {
 
 	@UpdateDateColumn()
 	updatedAt!: Date;
+
+	@OneToMany(() => FinancialAssistance, (assistance) => assistance.person)
+	financialAssistances!: FinancialAssistance[];
+
+	@OneToMany(() => MedicineAssistance, (assistance) => assistance.person)
+	medicineAssistances!: MedicineAssistance[];
 }

@@ -9,35 +9,43 @@ export const GET: RequestHandler = async ({ url }) => {
 		// Ensure database is initialized
 		await getDataSource();
 
-		// Get query parameters
-		const typeFilter = url.searchParams.get('type');
-		const nameFilter = url.searchParams.get('name');
-		const parentIdFilter = url.searchParams.get('parentId');
-		const limit = parseInt(url.searchParams.get('limit') || '1000'); // Default limit 1000
-		const offset = parseInt(url.searchParams.get('offset') || '0');
+	// Get query parameters
+	const typeFilter = url.searchParams.get('type');
+	const nameFilter = url.searchParams.get('name');
+	const parentIdFilter = url.searchParams.get('parentId');
+	const withRelations = url.searchParams.get('withRelations') === 'true';
+	const limit = parseInt(url.searchParams.get('limit') || '1000'); // Default limit 1000
+	const offset = parseInt(url.searchParams.get('offset') || '0');
 
-		console.log('Query params:', { typeFilter, nameFilter, parentIdFilter, limit, offset });
-		
-		// Build where clause for ActiveRecord
-		const where: any = {};
-		
-		if (typeFilter) {
-			where.type = typeFilter;
-		}
-		
-		if (parentIdFilter) {
-			where.parentId = parseInt(parentIdFilter);
-		}
-		
-		// ActiveRecord pattern - pure find() method
-		const localities = await Locality.find({
-			where: Object.keys(where).length > 0 ? where : undefined,
-			take: limit,
-			skip: offset,
-			select: ['id', 'name', 'code', 'type', 'boundaryGeoJSON', 'centroidLat', 'centroidLng', 'population', 'parentId']
-		});
+	console.log('Query params:', { typeFilter, nameFilter, parentIdFilter, withRelations, limit, offset });
+	
+	// Build where clause for ActiveRecord
+	const where: any = {};
+	
+	if (typeFilter) {
+		where.type = typeFilter;
+	}
+	
+	if (parentIdFilter) {
+		where.parentId = parseInt(parentIdFilter);
+	}
+	
+	// Build query options
+	const queryOptions: any = {
+		where: Object.keys(where).length > 0 ? where : undefined,
+		take: limit,
+		skip: offset,
+		select: ['id', 'name', 'code', 'type', 'boundaryGeoJSON', 'centroidLat', 'centroidLng', 'population', 'parentId']
+	};
 
-		console.log(`Found ${localities.length} localities`);
+	// Add relations if requested
+	if (withRelations) {
+		queryOptions.relations = ['parent', 'children'];
+		delete queryOptions.select; // Can't use select with relations in some cases
+	}
+
+	// ActiveRecord pattern - pure find() method
+	const localities = await Locality.find(queryOptions);		console.log(`Found ${localities.length} localities`);
 
 		return json(localities);
 	} catch (error: any) {

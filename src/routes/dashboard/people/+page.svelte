@@ -199,6 +199,70 @@
 		}
 	}
 
+	// Table state for people
+	let tableData: any[] = [];
+	let filteredTableData: any[] = [];
+	let tableSearchQuery = '';
+	let sortColumn = 'lastName';
+	let sortDirection: 'asc' | 'desc' = 'asc';
+	let currentPage = 1;
+	const pageSize = 10;
+
+	// Initialize and manage table data
+	$: {
+		tableData = people;
+		applyTableFiltersAndSort();
+	}
+
+	function applyTableFiltersAndSort() {
+		let filtered = tableData;
+		if (tableSearchQuery) {
+			const query = tableSearchQuery.toLowerCase();
+			filtered = filtered.filter(p =>
+				`${p.firstName} ${p.lastName}`.toLowerCase().includes(query) ||
+				p.purok?.toLowerCase().includes(query)
+			);
+		}
+
+		filtered.sort((a, b) => {
+			let aVal = a[sortColumn] ?? '';
+			let bVal = b[sortColumn] ?? '';
+
+			if (typeof aVal === 'string') {
+				aVal = aVal.toLowerCase();
+				bVal = (bVal as string).toLowerCase();
+			}
+
+			if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+			if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+			return 0;
+		});
+
+		filteredTableData = filtered;
+		currentPage = 1;
+	}
+
+	function handleTableSort(column: string) {
+		if (sortColumn === column) {
+			sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+		} else {
+			sortColumn = column;
+			sortDirection = 'asc';
+		}
+		applyTableFiltersAndSort();
+	}
+
+	function handleTableSearch(e: Event) {
+		tableSearchQuery = (e.target as HTMLInputElement).value;
+		applyTableFiltersAndSort();
+	}
+
+	$: paginatedPeople = filteredTableData.slice(
+		(currentPage - 1) * pageSize,
+		currentPage * pageSize
+	);
+	$: totalPages = Math.ceil(filteredTableData.length / pageSize);
+
 	$: filteredPeople = people.filter(
 		(p) =>
 			p.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -410,15 +474,20 @@
 
 	<div class="card shadow-sm border-0" style="border-top: 4px solid #27ae60;">
 		<div class="card-header" style="background-color: #f8f9fa;">
-			<div class="d-flex justify-content-between align-items-center">
-				<h5 class="mb-0 fw-bold" style="color: #2c3e50;">People List ({filteredPeople.length})</h5>
-				<input
-					type="text"
-					placeholder="Search by name..."
-					bind:value={searchQuery}
-					class="form-control"
-					style="max-width: 300px;"
-				/>
+			<div class="row align-items-center">
+				<div class="col-md-8">
+					<h5 class="mb-0 fw-bold" style="color: #2c3e50;">People List</h5>
+				</div>
+				<div class="col-md-4">
+					<input
+						type="text"
+						placeholder="Search people..."
+						value={tableSearchQuery}
+						on:input={handleTableSearch}
+						class="form-control form-control-sm"
+						style="background-color: #f0f0f0;"
+					/>
+				</div>
 			</div>
 		</div>
 		<div class="card-body">
@@ -429,11 +498,11 @@
 					</div>
 					Loading people...
 				</div>
-			{:else if filteredPeople.length === 0}
+			{:else if paginatedPeople.length === 0}
 				<div class="text-center py-5 text-muted">
 					<p class="mb-0 fs-5">No people found</p>
 					<small class="text-muted">
-						{searchQuery ? 'Try adjusting your search' : 'Add your first person to get started'}
+						{tableSearchQuery ? 'Try adjusting your search' : 'Add your first person to get started'}
 					</small>
 				</div>
 			{:else}
@@ -441,8 +510,32 @@
 					<table class="table table-hover table-striped">
 						<thead class="table-light">
 							<tr>
-								<th scope="col">Name</th>
-								<th scope="col">Birthdate</th>
+								<th 
+									style="cursor: pointer;"
+									class:fw-bold={sortColumn === 'lastName'}
+									on:click={() => handleTableSort('lastName')}
+									role="button"
+									tabindex="0"
+									on:keydown={(e) => e.key === 'Enter' && handleTableSort('lastName')}
+								>
+									Name
+									{#if sortColumn === 'lastName'}
+										<span class="float-end">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+									{/if}
+								</th>
+								<th 
+									style="cursor: pointer;"
+									class:fw-bold={sortColumn === 'birthdate'}
+									on:click={() => handleTableSort('birthdate')}
+									role="button"
+									tabindex="0"
+									on:keydown={(e) => e.key === 'Enter' && handleTableSort('birthdate')}
+								>
+									Birthdate
+									{#if sortColumn === 'birthdate'}
+										<span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
+									{/if}
+								</th>
 								<th scope="col">Sex</th>
 								<th scope="col">Town</th>
 								<th scope="col">Barangay</th>
@@ -451,7 +544,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each filteredPeople as person}
+							{#each paginatedPeople as person}
 								<tr>
 									<td>
 										<strong>{person.lastName}, {person.firstName}</strong>
@@ -481,6 +574,56 @@
 							{/each}
 						</tbody>
 					</table>
+				</div>
+				<div class="card-footer bg-light d-flex justify-content-between align-items-center">
+					<div class="text-muted small">
+						Showing {Math.min((currentPage - 1) * pageSize + 1, filteredTableData.length)} to {Math.min(currentPage * pageSize, filteredTableData.length)} of {filteredTableData.length}
+					</div>
+					<nav aria-label="Table pagination">
+						<ul class="pagination mb-0">
+							<li class="page-item" class:disabled={currentPage === 1}>
+								<button
+									class="page-link"
+									on:click={() => currentPage = 1}
+									disabled={currentPage === 1}
+								>
+									First
+								</button>
+							</li>
+							<li class="page-item" class:disabled={currentPage === 1}>
+								<button
+									class="page-link"
+									on:click={() => currentPage = Math.max(1, currentPage - 1)}
+									disabled={currentPage === 1}
+								>
+									Prev
+								</button>
+							</li>
+							<li class="page-item active">
+								<span class="page-link">
+									Page {currentPage} of {totalPages || 1}
+								</span>
+							</li>
+							<li class="page-item" class:disabled={currentPage === totalPages || totalPages === 0}>
+								<button
+									class="page-link"
+									on:click={() => currentPage = Math.min(totalPages, currentPage + 1)}
+									disabled={currentPage === totalPages || totalPages === 0}
+								>
+									Next
+								</button>
+							</li>
+							<li class="page-item" class:disabled={currentPage === totalPages || totalPages === 0}>
+								<button
+									class="page-link"
+									on:click={() => currentPage = totalPages}
+									disabled={currentPage === totalPages || totalPages === 0}
+								>
+									Last
+								</button>
+							</li>
+						</ul>
+					</nav>
 				</div>
 			{/if}
 		</div>

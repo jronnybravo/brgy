@@ -1,12 +1,12 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
-import { Assistance } from '$lib/database/entities/Assistance';
+import { Assistance, FinancialAssistance } from '$lib/database/entities/Assistance';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {
-		const assistance = await Assistance.findOne({
+		const assistance = await FinancialAssistance.findOne({
 			where: { id: parseInt(params.id!) },
-			relations: { person: true}
+			relations: { person: true }
 		});
 
 		if (!assistance) {
@@ -31,7 +31,7 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 		const data = await request.json();
 		const id = parseInt(params.id!);
 
-		const assistance = await Assistance.findOne({ where: { id } });
+		const assistance = await FinancialAssistance.findOne({ where: { id } });
 
 		if (!assistance) {
 			return json({ success: false, error: 'Assistance not found' }, { status: 404 });
@@ -44,13 +44,13 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 			}
 			assistance.type = data.type;
 		}
-		if (data.date_disbursed !== undefined) assistance.date_disbursed = new Date(data.date_disbursed);
-		if (data.amount !== undefined) assistance.amount = parseFloat(data.amount);
+		if (data.date_disbursed !== undefined) assistance.disbursed_date = new Date(data.date_disbursed);
+		if (data.amount !== undefined) assistance.value = parseFloat(data.amount);
 
 		await assistance.save();
 
 		// Reload with person info
-		const updated = await Assistance.findOne({
+		const updated = await FinancialAssistance.findOne({
 			where: { id },
 			relations: { person: true }
 		});
@@ -72,7 +72,7 @@ export const DELETE: RequestHandler = async ({ params }) => {
 	try {
 		const id = parseInt(params.id!);
 
-		const assistance = await Assistance.findOne({ where: { id } });
+		const assistance = await FinancialAssistance.findOne({ where: { id } });
 
 		if (!assistance) {
 			return json({ success: false, error: 'Assistance not found' }, { status: 404 });

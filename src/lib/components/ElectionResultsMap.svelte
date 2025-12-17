@@ -26,6 +26,7 @@
 	let localities: Locality[] = [];
 	let contests: Contest[] = [];
 	let electionResults: any = null;
+	let assistanceData: any = null;
 	let colorMap: Record<number, string> = {};
 	let loading = true;
 	let error = '';
@@ -57,6 +58,15 @@
 						colorMap[lId] = (result as any).winnerColor || '#6366f1';
 					}
 				}
+			}
+
+			// Fetch assistance disbursement data
+			const assistanceRes = await fetch('/api/assistances/map');
+			if (!assistanceRes.ok) {
+				console.warn('Failed to fetch assistance data');
+			} else {
+				const result = await assistanceRes.json();
+				assistanceData = result.data || result;
 			}
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'An error occurred loading election data';
@@ -107,7 +117,7 @@
 					</div>
 				{/if}
 				<div style="border-radius: 8px; overflow: hidden; border: 1px solid #ecf0f1;">
-					<Map {localities} {electionResults} {colorMap} />
+					<Map {localities} {electionResults} {colorMap} {assistanceData} />
 				</div>
 			</div>
 		{/if}

@@ -129,25 +129,27 @@
 
 						{#if expandedMunicipalities.has(municipality.id)}
 							<div style="background-color: #f8f9fa; border-top: 1px solid #ecf0f1;">
-								{#each municipality.barangays as barangay (barangay.id)}
-									<div
-										style="
-											display: flex;
-											justify-content: space-between;
-											align-items: center;
-											padding: 0.5rem 1rem 0.5rem 2.5rem;
-											border-bottom: 1px solid #ecf0f1;
-											border-left: 3px solid #3498db;
-											background-color: transparent;
-											transition: background-color 0.2s;
-										"
-										on:mouseenter={(e) => (e.currentTarget.style.backgroundColor = '#f0f7ff')}
-										on:mouseleave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-									>
-										<span style="color: #2c3e50; font-size: 0.95rem;">{barangay.name}</span>
-										<span class="badge bg-success">{barangay.peopleCount}</span>
-									</div>
-								{/each}
+							{#each municipality.barangays as barangay (barangay.id)}
+								<div
+									role="button"
+									tabindex="0"
+									style="
+										display: flex;
+										justify-content: space-between;
+										align-items: center;
+										padding: 0.5rem 1rem 0.5rem 2.5rem;
+										border-bottom: 1px solid #ecf0f1;
+										border-left: 3px solid #3498db;
+										background-color: transparent;
+										transition: background-color 0.2s;
+									"
+									on:mouseenter={(e) => (e.currentTarget.style.backgroundColor = '#f0f7ff')}
+									on:mouseleave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+								>
+									<span style="color: #2c3e50; font-size: 0.95rem;">{barangay.name}</span>
+									<span class="badge bg-success">{barangay.peopleCount}</span>
+								</div>
+							{/each}
 							</div>
 						{/if}
 					</div>

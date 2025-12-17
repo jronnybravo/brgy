@@ -7,6 +7,7 @@
 	export let zoom: number = 11;
 	export let colorMap: Record<number, string> = {};
 	export let electionResults: any = null;
+	export let assistanceData: any = null;
 
 	let mapContainer: HTMLDivElement;
 	let map: LeafletMap;
@@ -43,6 +44,7 @@
 
 	function getPopupContent(locality: any): string {
 		const result = electionResults?.results?.[locality.id];
+		const assistance = assistanceData?.barangays?.find((b: any) => b.id === locality.id);
 		
 		let content = `
 			<div class="popup-content">
@@ -79,9 +81,41 @@
 			
 			content += `<p class="total">Total: ${result.totalVotes.toLocaleString()}</p></div>`;
 		}
+
+		if (assistance !== undefined) {
+			content += `<div class="assistance-data">
+				<p class="section-title"><strong>Financial Assistance Disbursed</strong></p>`;
+			
+			const types = Object.keys(assistance.byType);
+			if (types.length > 0) {
+				content += `<div class="assistance-types">`;
+				types.forEach((type) => {
+					const amount = assistance.byType[type];
+					content += `
+						<div class="assistance-row">
+							<span class="type-label">${type}:</span>
+							<span class="type-amount">₱${(amount as number).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+						</div>
+					`;
+				});
+				content += `</div>`;
+			}
+			
+			content += `<p class="total-assistance" style="margin-top: 0.5em; border-top: 1px solid #ddd; padding-top: 0.5em;">Total: ₱${assistance.totalDisbursed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>`;
+			content += `</div>`;
+		}
 		
 		content += '</div>';
 		return content;
+	}
+
+	function getNavigationLink(locality: any): string {
+		// If locality has a parent, it's a barangay; parent is the municipality
+		if (locality.parentId) {
+			return `/dashboard/municipalities/${locality.parentId}/barangays/${locality.id}`;
+		}
+		// If no parent, it's likely a municipality itself
+		return `/dashboard/municipalities/${locality.id}`;
 	}
 
 	function isValidGeoJSON(geoJson: any): boolean {
@@ -164,29 +198,33 @@
 						layer.bindPopup(getPopupContent(locality), {
 							className: 'custom-popup'
 						});
+
+						// Show popup on hover
+						layer.on('mouseover', function (this: any) {
+							this.openPopup();
+							this.setStyle({
+								fillOpacity: 0.9,
+								weight: 3
+							});
+							this.bringToFront();
+						});
+
+						// Hide popup and restore style on mouseout
+						layer.on('mouseout', function (this: any) {
+							this.closePopup();
+							const hasResults = colorMap[feature.properties.id];
+							this.setStyle({
+								fillOpacity: hasResults ? 0.7 : 0.4,
+								weight: hasResults ? 2 : 1
+							});
+						});
+
+						// Navigate on click using <a> tag
+						layer.on('click', function () {
+							const navigationLink = getNavigationLink(locality);
+							window.location.href = navigationLink;
+						});
 					}
-
-					layer.on('mouseover', function (this: any) {
-						this.setStyle({
-							fillOpacity: 0.9,
-							weight: 3
-						});
-						this.bringToFront();
-					});
-
-					layer.on('mouseout', function (this: any) {
-						const hasResults = colorMap[feature.properties.id];
-						this.setStyle({
-							fillOpacity: hasResults ? 0.7 : 0.4,
-							weight: hasResults ? 2 : 1
-						});
-					});
-
-					layer.on('click', function () {
-						window.dispatchEvent(
-							new CustomEvent('localityClick', { detail: feature.properties })
-						);
-					});
 				}
 			}).addTo(map);
 
@@ -273,6 +311,38 @@
 			opacity: 0.6;
 			border-top: 1px solid rgba(255,255,255,0.1);
 			padding-top: 6px;
+		}
+		.custom-popup .popup-content .assistance-data {
+			border-top: 1px solid rgba(255,255,255,0.1);
+			padding-top: 8px;
+			margin-top: 8px;
+		}
+		.custom-popup .popup-content .section-title {
+			margin: 0 0 4px 0;
+			font-size: 12px;
+		}
+		.custom-popup .popup-content .total-assistance {
+			margin: 4px 0;
+			font-size: 12px;
+			font-weight: 600;
+			color: #60a5fa;
+		}
+		.custom-popup .popup-content .assistance-types {
+			font-size: 11px;
+			margin-top: 6px;
+		}
+		.custom-popup .popup-content .assistance-row {
+			display: flex;
+			justify-content: space-between;
+			padding: 2px 0;
+			gap: 8px;
+		}
+		.custom-popup .popup-content .type-label {
+			opacity: 0.8;
+		}
+		.custom-popup .popup-content .type-amount {
+			color: #10b981;
+			font-weight: 500;
 		}
 	</style>
 </svelte:head>

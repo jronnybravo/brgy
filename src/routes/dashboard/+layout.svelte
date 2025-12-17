@@ -47,6 +47,14 @@
 					📊 Dashboard
 				</a>
 				<a 
+					href="/dashboard/municipalities" 
+					class="nav-link mx-2" 
+					class:active={isActive('/dashboard/municipalities')}
+					style="color: #95a5a6; transition: all 0.3s;"
+				>
+					🏘️ Towns
+				</a>
+				<a 
 					href="/dashboard/people" 
 					class="nav-link mb-2 mx-2" 
 					class:active={isActive('/dashboard/people')}
@@ -62,6 +70,7 @@
 				>
 					🤝 Assistances
 				</a>
+				
 			</div>
 		</div>
 
@@ -73,7 +82,7 @@
 	</nav>
 
 	<!-- Main Content -->
-	<main class="flex-grow-1 overflow-y-auto" style="background: linear-gradient(135deg, #ecf0f1 0%, #f8f9fa 100%);">
+	<main class="flex-grow-1 overflow-y-auto" style="background: linear-gradient(135deg, #ecf0f1 0%, #f8f9fa 100%); scrollbar-gutter: stable;">
 		<slot />
 	</main>
 </div>

@@ -7,7 +7,7 @@ import { Candidate } from './entities/Candidate';
 import { ElectionResult } from './entities/ElectionResult';
 import { User } from './entities/User';
 import { Person } from './entities/Person';
-import { Assistance } from './entities/Assistance';
+import { Assistance, FinancialAssistance, MedicineAssistance } from './entities/Assistance';
 
 // Load environment variables from .env file
 config();
@@ -29,7 +29,9 @@ export const AppDataSource = new DataSource({
 		ElectionResult, 
 		User,
 		Person,
-		Assistance
+		Assistance,
+		FinancialAssistance,
+		MedicineAssistance
 	],
 	migrations: [],
 	subscribers: []
