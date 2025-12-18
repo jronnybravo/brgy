@@ -5,9 +5,10 @@ import type { Handle } from '@sveltejs/kit';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
-// Initialize database connection when server starts
+// Initialize database connection when server starts with error handling
 initializeDatabase().catch((error) => {
-	console.error('Failed to initialize database:', error);
+	console.error('⚠️ Initial database connection failed:', error);
+	console.error('The server will continue running and retry on first request.');
 });
 
 export const handle: Handle = async ({ event, resolve }) => {

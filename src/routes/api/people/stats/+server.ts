@@ -1,31 +1,75 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { Locality } from '$lib/database/entities/Locality';
+import { handleConnectionError } from '$lib/database/connection-error-handler';
+
+// Retry logic for failed queries
+async function fetchWithRetry<T>(
+	operation: () => Promise<T>,
+	maxRetries: number = 3,
+	delayMs: number = 100
+): Promise<T> {
+	let lastError: Error | null = null;
+
+	for (let attempt = 1; attempt <= maxRetries; attempt++) {
+		try {
+			return await operation();
+		} catch (error) {
+			lastError = error instanceof Error ? error : new Error(String(error));
+			
+			// Check if error is a connection error
+			const isConnectionError = 
+				lastError.message.includes('ECONNRESET') ||
+				lastError.message.includes('ECONNREFUSED') ||
+				lastError.message.includes('ETIMEDOUT') ||
+				lastError.message.includes('Connection lost');
+
+			if (isConnectionError && attempt < maxRetries) {
+				console.warn(`Attempt ${attempt} failed, retrying in ${delayMs}ms...`, lastError.message);
+				await new Promise(resolve => setTimeout(resolve, delayMs));
+				// Exponential backoff for next attempt
+				delayMs *= 2;
+			} else if (!isConnectionError) {
+				// Don't retry non-connection errors
+				throw error;
+			} else {
+				// Last attempt failed
+				throw lastError;
+			}
+		}
+	}
+
+	throw lastError || new Error('Operation failed after retries');
+}
 
 export const GET: RequestHandler = async () => {
 	try {
 		// Get SIQUIJOR province with municipalities and their barangays (with person counts)
-		const siquijorProvince = await Locality.findOne({
-			where: {
-				name: 'SIQUIJOR',
-				type: 'province'
-			},
-			relations: {
-				children: { // municipalities
-					children: { // barangays
-						persons: true
+		const siquijorProvince = await fetchWithRetry(
+			() => Locality.findOne({
+				where: {
+					name: 'SIQUIJOR',
+					type: 'province'
+				},
+				relations: {
+					children: { // municipalities
+						children: { // barangays
+							persons: true
+						}
 					}
-				}
-			},
-			order: {
-				children: {
-					name: 'ASC',
+				},
+				order: {
 					children: {
-						name: 'ASC'
+						name: 'ASC',
+						children: {
+							name: 'ASC'
+						}
 					}
 				}
-			}
-		});
+			}),
+			3,
+			100
+		);
 
 		if (!siquijorProvince?.children?.length) {
 			return json({
@@ -64,11 +108,15 @@ export const GET: RequestHandler = async () => {
 		});
 	} catch (error) {
 		console.error('Error fetching people stats:', error);
+		
+		// Handle connection errors more gracefully
+		const errorMessage = handleConnectionError(error);
+		
 		return json(
 			{
 				success: false,
 				error: 'Failed to fetch people statistics',
-				details: error instanceof Error ? error.message : String(error)
+				details: errorMessage
 			},
 			{ status: 500 }
 		);

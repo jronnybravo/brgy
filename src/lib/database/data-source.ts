@@ -34,10 +34,35 @@ export const AppDataSource = new DataSource({
 		MedicineAssistance
 	],
 	migrations: [],
-	subscribers: []
+	subscribers: [],
+	// Connection pooling configuration to prevent ECONNRESET errors
+	poolSize: 10,
+	maxQueryExecutionTime: 30000, // 30 seconds
+	// MySQL-specific options for better connection handling
+	extra: {
+		connectionLimit: 10,
+		waitForConnections: true,
+		queueLimit: 0,
+		// Prevent idle connection timeouts
+		enableKeepAlive: true,
+		keepAliveInitialDelayMs: 0,
+		// Retry connection on errors
+		autoReconnect: true,
+		multipleStatements: true,
+		// Connection timeout settings (in milliseconds)
+		connectTimeout: 30000,
+		acquireTimeout: 30000
+	}
 });
 
 let initializationPromise: Promise<DataSource> | null = null;
+let retryCount = 0;
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 2000; // 2 seconds
+
+function delay(ms: number): Promise<void> {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 export async function initializeDatabase(): Promise<DataSource> {
 	// Return existing connection if already initialized
@@ -51,16 +76,34 @@ export async function initializeDatabase(): Promise<DataSource> {
 	}
 	
 	// Start initialization and store the promise to prevent race conditions
-	initializationPromise = AppDataSource.initialize()
-		.then(() => {
-			console.log('Database connection initialized');
-			return AppDataSource;
-		})
-		.catch((error) => {
-			// Reset promise on error so retry is possible
-			initializationPromise = null;
-			throw error;
-		});
+	initializationPromise = (async () => {
+		let lastError: Error | null = null;
+		
+		for (let i = 0; i < MAX_RETRIES; i++) {
+			try {
+				await AppDataSource.initialize();
+				console.log('✅ Database connection initialized');
+				retryCount = 0; // Reset retry counter on success
+				return AppDataSource;
+			} catch (error) {
+				lastError = error instanceof Error ? error : new Error(String(error));
+				retryCount++;
+				
+				if (i < MAX_RETRIES - 1) {
+					const waitTime = RETRY_DELAY * (i + 1);
+					console.warn(`⚠️ Database connection failed (attempt ${i + 1}/${MAX_RETRIES}): ${lastError.message}`);
+					console.log(`⏳ Retrying in ${waitTime}ms...`);
+					await delay(waitTime);
+				} else {
+					console.error(`❌ Failed to initialize database after ${MAX_RETRIES} attempts:`, lastError);
+				}
+			}
+		}
+		
+		// Reset promise on error so retry is possible
+		initializationPromise = null;
+		throw lastError || new Error('Failed to initialize database');
+	})();
 	
 	return initializationPromise;
 }

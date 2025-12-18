@@ -30,47 +30,97 @@
 	let colorMap: Record<number, string> = {};
 	let loading = true;
 	let error = '';
+	let retryCount = 0;
+	const MAX_RETRIES = 2;
+
+	// Fetch with retry logic
+	async function fetchWithRetry(
+		url: string,
+		maxRetries: number = 2
+	): Promise<Response | null> {
+		let lastError: Error | null = null;
+
+		for (let attempt = 1; attempt <= maxRetries; attempt++) {
+			try {
+				const res = await fetch(url);
+				if (res.ok) return res;
+				if (res.status === 404 || res.status === 400) return res; // Don't retry client errors
+				throw new Error(`HTTP ${res.status}`);
+			} catch (e) {
+				lastError = e instanceof Error ? e : new Error(String(e));
+				if (attempt < maxRetries) {
+					console.warn(`Attempt ${attempt} failed for ${url}, retrying...`);
+					await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+				}
+			}
+		}
+
+		console.error('All retry attempts failed for', url, lastError);
+		return null;
+	}
 
 	async function loadElectionData() {
 		try {
 			loading = true;
 			error = '';
 
-			// Fetch Siquijor barangays with GeoJSON for the map (optimized endpoint)
-			const localitiesRes = await fetch('/api/localities/siquijor/map');
-			if (!localitiesRes.ok) {
-				const errorData = await localitiesRes.json();
-				throw new Error(errorData.details || 'Failed to fetch map data');
+			// Fetch all data in parallel with retries
+			const [localitiesRes, resultsRes, assistanceRes] = await Promise.all([
+				fetchWithRetry('/api/localities/siquijor/map'),
+				fetchWithRetry('/api/elections/results/map?contestId=4'),
+				fetchWithRetry('/api/assistances/map')
+			]);
+
+			// Handle localities (required)
+			if (!localitiesRes || !localitiesRes.ok) {
+				throw new Error('Failed to fetch map data');
 			}
 			localities = await localitiesRes.json();
 
-			// Fetch election results for contest ID 4 (Governor position)
-			const resultsRes = await fetch('/api/elections/results/map?contestId=4');
-			if (!resultsRes.ok) {
-				console.warn('Failed to fetch election results');
-			} else {
-				electionResults = await resultsRes.json();
-				
-				// Build color map: localityId -> winner color
-				if (electionResults?.results) {
-					for (const [localityId, result] of Object.entries(electionResults.results)) {
-						const lId = parseInt(localityId);
-						colorMap[lId] = (result as any).winnerColor || '#6366f1';
+			// Handle election results (optional)
+			if (resultsRes?.ok) {
+				try {
+					electionResults = await resultsRes.json();
+					
+					// Build color map: localityId -> winner color
+					if (electionResults?.results) {
+						for (const [localityId, result] of Object.entries(electionResults.results)) {
+							const lId = parseInt(localityId);
+							colorMap[lId] = (result as any).winnerColor || '#6366f1';
+						}
 					}
+				} catch (e) {
+					console.warn('Failed to parse election results:', e);
 				}
+			} else {
+				console.warn('Election results not available');
 			}
 
-			// Fetch assistance disbursement data
-			const assistanceRes = await fetch('/api/assistances/map');
-			if (!assistanceRes.ok) {
-				console.warn('Failed to fetch assistance data');
+			// Handle assistance data (optional)
+			if (assistanceRes?.ok) {
+				try {
+					const result = await assistanceRes.json();
+					assistanceData = result.data || result;
+				} catch (e) {
+					console.warn('Failed to parse assistance data:', e);
+				}
 			} else {
-				const result = await assistanceRes.json();
-				assistanceData = result.data || result;
+				console.warn('Assistance data not available');
 			}
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'An error occurred loading election data';
+			const errorMessage = e instanceof Error ? e.message : 'An error occurred loading election data';
 			console.error('Error loading election data:', e);
+			
+			// Retry on connection errors
+			if (retryCount < MAX_RETRIES && errorMessage.includes('Failed to fetch')) {
+				retryCount++;
+				console.warn(`Retrying... (${retryCount}/${MAX_RETRIES})`);
+				error = `Loading map... (attempt ${retryCount}/${MAX_RETRIES})`;
+				await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 500));
+				return loadElectionData();
+			}
+			
+			error = errorMessage;
 		} finally {
 			loading = false;
 		}
@@ -98,7 +148,15 @@
 				</div>
 			</div>
 		{:else if error}
-			<div class="alert alert-danger m-3 mb-0">{error}</div>
+			<div class="alert alert-danger m-3 mb-0">
+				<div>{error}</div>
+				<button 
+					class="btn btn-sm btn-outline-danger mt-2"
+					on:click={() => loadElectionData()}
+				>
+					🔄 Try Again
+				</button>
+			</div>
 		{:else}
 			<div class="d-flex flex-column gap-3 p-3" style="overflow: auto;">
 				{#if electionResults?.candidates && electionResults.candidates.length > 0}

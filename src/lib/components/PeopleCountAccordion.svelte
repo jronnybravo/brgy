@@ -17,16 +17,21 @@
 	let loading = true;
 	let error = '';
 	let expandedMunicipalities: Set<number> = new Set();
+	let retryCount = 0;
+	const MAX_RETRIES = 3;
 
-	async function loadMunicipalitiesWithCounts() {
+	async function loadMunicipalitiesWithCounts(isRetry: boolean = false) {
 		try {
 			loading = true;
-			error = '';
+			if (!isRetry) {
+				error = '';
+				retryCount = 0;
+			}
 
 			// Single API call to get all municipalities with barangays and people counts
 			const res = await fetch('/api/people/stats');
 			if (!res.ok) {
-				const errorData = await res.json();
+				const errorData = await res.json().catch(() => ({}));
 				throw new Error(errorData.error || 'Failed to load people statistics');
 			}
 
@@ -37,8 +42,20 @@
 
 			municipalities = data.data.municipalities;
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'An error occurred loading municipalities';
+			const errorMessage = e instanceof Error ? e.message : 'An error occurred loading municipalities';
 			console.error('Error loading municipalities:', e);
+			
+			// Retry logic for connection errors
+			if (retryCount < MAX_RETRIES && errorMessage.includes('statistics')) {
+				retryCount++;
+				console.warn(`Retrying... (${retryCount}/${MAX_RETRIES})`);
+				error = `Loading statistics... (attempt ${retryCount}/${MAX_RETRIES})`;
+				// Wait before retrying (exponential backoff)
+				await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount - 1) * 500));
+				return loadMunicipalitiesWithCounts(true);
+			}
+			
+			error = errorMessage;
 		} finally {
 			loading = false;
 		}
@@ -84,7 +101,15 @@
 				Loading people statistics...
 			</div>
 		{:else if error}
-			<div class="alert alert-danger mb-0 m-3">{error}</div>
+			<div class="alert alert-danger mb-0 m-3">
+				<div>{error}</div>
+				<button 
+					class="btn btn-sm btn-outline-danger mt-2"
+					on:click={() => loadMunicipalitiesWithCounts()}
+				>
+					🔄 Try Again
+				</button>
+			</div>
 		{:else if municipalities.length === 0}
 			<div class="text-center text-muted py-4">No municipalities found</div>
 		{:else}
