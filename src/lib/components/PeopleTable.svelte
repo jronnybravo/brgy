@@ -3,6 +3,8 @@
 	export let financialAssistances: any[] = [];
 	export let medicineAssistances: any[] = [];
 	export let showLocationColumns = true; // Toggle town and barangay columns
+	export let onEdit: ((person: any) => void) | null = null;
+	export let onDelete: ((id: number) => void) | null = null;
 
 	let searchQuery = '';
 	let sortColumn = 'firstName';
@@ -285,6 +287,7 @@
 							<span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
 						{/if}
 					</th>
+					<th class="text-center">Actions</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -331,6 +334,26 @@
 								</button>
 							{:else}
 								<span class="badge bg-light text-dark">-</span>
+							{/if}
+						</td>
+						<td class="text-center">
+							{#if onEdit}
+								<button 
+									class="btn btn-sm btn-warning me-1"
+									on:click={() => onEdit(person)}
+									title="Edit person"
+								>
+									✏️
+								</button>
+							{/if}
+							{#if onDelete}
+								<button 
+									class="btn btn-sm btn-danger"
+									on:click={() => onDelete(person.id)}
+									title="Delete person"
+								>
+									🗑️
+								</button>
 							{/if}
 						</td>
 					</tr>

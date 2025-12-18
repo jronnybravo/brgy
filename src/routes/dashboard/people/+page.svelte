@@ -31,10 +31,14 @@
 	let formData = {
 		firstName: '',
 		lastName: '',
+		middleName: '',
+		extensionName: '',
 		birthdate: '',
-		sex: 'M',
+		sex: 'Male',
 		barangayId: '',
-		purok: ''
+		purok: '',
+		isSupporter: null as boolean | null,
+		isLeader: false
 	};
 
 	async function loadPeople() {
@@ -105,7 +109,9 @@
 
 	$: filteredBarangays = getBarangaysForMunicipality(selectedMunicipality);
 
-	async function savePerson() {
+	async function savePerson(e?: Event) {
+		e?.preventDefault();
+		
 		if (!formData.firstName || !formData.lastName || !formData.birthdate || !formData.barangayId) {
 			error = 'Please fill in all required fields';
 			return;
@@ -115,10 +121,16 @@
 			const method = editingId ? 'PUT' : 'POST';
 			const endpoint = editingId ? `/api/people/${editingId}` : '/api/people';
 
+			// Convert barangayId back to number for API
+			const dataToSend = {
+				...formData,
+				barangayId: parseInt(formData.barangayId as any)
+			};
+
 			const res = await fetch(endpoint, {
 				method,
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(formData)
+				body: JSON.stringify(dataToSend)
 			});
 
 			if (!res.ok) {
@@ -149,6 +161,9 @@
 		formData = { ...person };
 		editingId = person.id;
 		
+		// Convert barangayId to string for select binding
+		formData.barangayId = person.barangayId?.toString() || '';
+		
 		// Find and set the municipality for the barangay
 		const barangay = barangays.find(b => b.id === person.barangayId);
 		if (barangay) {
@@ -163,10 +178,14 @@
 		formData = {
 			firstName: '',
 			lastName: '',
+			middleName: '',
+			extensionName: '',
 			birthdate: '',
-			sex: 'M',
+			sex: 'Male',
 			barangayId: '',
-			purok: ''
+			purok: '',
+			isSupporter: null,
+			isLeader: false
 		};
 		selectedMunicipality = '';
 		editingId = null;
@@ -338,96 +357,180 @@
 	{/if}
 
 	{#if showForm}
-		<div class="card mb-4 shadow-sm border-0" style="border-top: 4px solid #3498db;">
-			<div class="card-header" style="background-color: #f8f9fa; border-bottom: 1px solid #ecf0f1;">
-				<h5 class="mb-0 fw-bold" style="color: #2c3e50;">{editingId ? 'Edit Person' : 'Add New Person'}</h5>
-			</div>
-			<div class="card-body">
-				<form on:submit={savePerson}>
-					<div class="row mb-3">
-						<div class="col-md-6">
-							<label for="firstName" class="form-label fw-500">First Name *</label>
-							<input
-								type="text"
-								id="firstName"
-								class="form-control form-control-lg"
-								bind:value={formData.firstName}
-								placeholder="Enter first name"
-								required
-							/>
-						</div>
-						<div class="col-md-6">
-							<label for="lastName" class="form-label fw-500">Last Name *</label>
-							<input
-								type="text"
-								id="lastName"
-								class="form-control form-control-lg"
-								bind:value={formData.lastName}
-								placeholder="Enter last name"
-								required
-							/>
-						</div>
+		<div class="modal d-block" style="background-color: rgba(0, 0, 0, 0.5);">
+			<div class="modal-dialog modal-lg">
+				<div class="modal-content">
+					<div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+						<h5 class="modal-title">{editingId ? '✏️ Edit Person' : '➕ Add New Person'}</h5>
+						<button type="button" class="btn-close btn-close-white" on:click={resetForm}></button>
 					</div>
+					<div class="modal-body">
+						<form on:submit={savePerson} id="personForm">
+							<div class="row mb-3">
+								<div class="col-md-6">
+									<label for="lastName" class="form-label fw-500">Last Name *</label>
+									<input
+										type="text"
+										id="lastName"
+										class="form-control form-control-lg"
+										bind:value={formData.lastName}
+										placeholder="Enter last name"
+										required
+									/>
+								</div>
+								<div class="col-md-6">
+									<label for="firstName" class="form-label fw-500">First Name *</label>
+									<input
+										type="text"
+										id="firstName"
+										class="form-control form-control-lg"
+										bind:value={formData.firstName}
+										placeholder="Enter first name"
+										required
+									/>
+								</div>
+							</div>
 
-					<div class="row mb-3">
-						<div class="col-md-6">
-							<label for="birthdate" class="form-label fw-500">Birthdate *</label>
-							<input 
-								type="date" 
-								id="birthdate" 
-								class="form-control form-control-lg"
-								bind:value={formData.birthdate}
-								required
-							/>
-						</div>
-						<div class="col-md-6">
-							<label for="sex" class="form-label fw-500">Sex *</label>
-							<select id="sex" class="form-select form-select-lg" bind:value={formData.sex} required>
-								<option value="M">Male</option>
-								<option value="F">Female</option>
-							</select>
-						</div>
+							<div class="row mb-3">
+								<div class="col-md-6">
+									<label for="middleName" class="form-label fw-500">Middle Name</label>
+									<input
+										type="text"
+										id="middleName"
+										class="form-control form-control-lg"
+										bind:value={formData.middleName}
+										placeholder="Enter middle name"
+									/>
+								</div>
+								<div class="col-md-6">
+									<label for="extensionName" class="form-label fw-500">Extension Name</label>
+									<input
+										type="text"
+										id="extensionName"
+										class="form-control form-control-lg"
+										bind:value={formData.extensionName}
+										placeholder="e.g., Jr., Sr., III"
+									/>
+								</div>
+							</div>
+
+							<div class="row mb-3">
+								<div class="col-md-6">
+									<label for="birthdate" class="form-label fw-500">Birthdate *</label>
+									<input 
+										type="date" 
+										id="birthdate" 
+										class="form-control form-control-lg"
+										bind:value={formData.birthdate}
+										required
+									/>
+								</div>
+								<div class="col-md-6">
+									<label for="sex" class="form-label fw-500">Sex *</label>
+									<select id="sex" class="form-select form-select-lg" bind:value={formData.sex} required>
+									<option value="Male">Male</option>
+									<option value="Female">Female</option>
+									</select>
+								</div>
+							</div>
+
+							<div class="row mb-3">
+								<div class="col-md-6">
+									<label for="municipality" class="form-label fw-500">Municipality *</label>
+									<select id="municipality" class="form-select form-select-lg" bind:value={selectedMunicipality} required>
+										<option value="">-- Select Municipality --</option>
+										{#each municipalities as municipality}
+											<option value={municipality.id.toString()}>{municipality.name}</option>
+										{/each}
+									</select>
+								</div>
+								<div class="col-md-6">
+									<label for="barangayId" class="form-label fw-500">Barangay *</label>
+									<select id="barangayId" class="form-select form-select-lg" bind:value={formData.barangayId} required>
+										<option value="">-- Select Barangay --</option>
+										{#each filteredBarangays as barangay}
+											<option value={barangay.id.toString()}>{barangay.name}</option>
+										{/each}
+									</select>
+								</div>
+							</div>
+
+							<div class="mb-3">
+								<label for="purok" class="form-label fw-500">Purok</label>
+								<input 
+									type="text" 
+									id="purok" 
+									class="form-control form-control-lg"
+									bind:value={formData.purok} 
+									placeholder="Enter purok" 
+								/>
+							</div>
+
+							<div class="row mb-3">
+								<div class="col-md-6">
+									<div class="mb-3">
+										<div class="form-label fw-500 d-block mb-2">Is Supporter?</div>
+										<div class="btn-group" role="group" aria-label="Is Supporter options">
+											<input 
+												type="radio" 
+												class="btn-check" 
+												id="supporterYes" 
+												name="isSupporter" 
+												value="yes"
+												checked={formData.isSupporter === true}
+												on:change={() => formData.isSupporter = true}
+											/>
+											<label class="btn btn-outline-primary" for="supporterYes">Yes</label>
+
+											<input 
+												type="radio" 
+												class="btn-check" 
+												id="supporterNo" 
+												name="isSupporter" 
+												value="no"
+												checked={formData.isSupporter === false}
+												on:change={() => formData.isSupporter = false}
+											/>
+											<label class="btn btn-outline-primary" for="supporterNo">No</label>
+
+											<input 
+												type="radio" 
+												class="btn-check" 
+												id="supporterUnsure" 
+												name="isSupporter" 
+												value="unsure"
+												checked={formData.isSupporter === null}
+												on:change={() => formData.isSupporter = null}
+											/>
+											<label class="btn btn-outline-primary" for="supporterUnsure">Unsure</label>
+										</div>
+									</div>
+								</div>
+
+								<div class="col-md-6">
+									<label for="isLeader" class="form-label fw-500 d-block">Is Leader?</label>
+									<div class="form-check">
+										<input 
+											type="checkbox" 
+											class="form-check-input" 
+											id="isLeader"
+											bind:checked={formData.isLeader}
+										/>
+										<label class="form-check-label" for="isLeader">
+											Mark as leader
+										</label>
+									</div>
+								</div>
+							</div>
+						</form>
 					</div>
-
-					<div class="row mb-3">
-						<div class="col-md-6">
-							<label for="municipality" class="form-label fw-500">Municipality *</label>
-							<select id="municipality" class="form-select form-select-lg" bind:value={selectedMunicipality} required>
-								<option value="">-- Select Municipality --</option>
-								{#each municipalities as municipality}
-									<option value={municipality.id}>{municipality.name}</option>
-								{/each}
-							</select>
-						</div>
-						<div class="col-md-6">
-							<label for="barangayId" class="form-label fw-500">Barangay *</label>
-							<select id="barangayId" class="form-select form-select-lg" bind:value={formData.barangayId} required>
-								<option value="">-- Select Barangay --</option>
-								{#each filteredBarangays as barangay}
-									<option value={barangay.id}>{barangay.name}</option>
-								{/each}
-							</select>
-						</div>
-					</div>
-
-					<div class="mb-4">
-						<label for="purok" class="form-label fw-500">Purok</label>
-						<input 
-							type="text" 
-							id="purok" 
-							class="form-control form-control-lg"
-							bind:value={formData.purok} 
-							placeholder="Enter purok" 
-						/>
-					</div>
-
-					<div class="d-flex gap-2">
-						<button type="submit" class="btn btn-success btn-lg">
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" on:click={resetForm}>Cancel</button>
+						<button type="submit" form="personForm" class="btn btn-success">
 							{editingId ? '💾 Update' : '💾 Create'}
 						</button>
-						<button type="button" on:click={resetForm} class="btn btn-outline-secondary btn-lg">Cancel</button>
 					</div>
-				</form>
+				</div>
 			</div>
 		</div>
 	{/if}
@@ -454,6 +557,8 @@
 					{people}
 					{financialAssistances}
 					{medicineAssistances}
+					onEdit={editPerson}
+					onDelete={deletePerson}
 				/>
 			{/if}
 		</div>

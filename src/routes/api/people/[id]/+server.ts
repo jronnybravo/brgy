@@ -39,10 +39,14 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 
 		if (data.lastName) person.lastName = data.lastName;
 		if (data.firstName) person.firstName = data.firstName;
+		if (data.middleName !== undefined) person.middleName = data.middleName || null;
+		if (data.extensionName !== undefined) person.extensionName = data.extensionName || null;
 		if (data.birthdate) person.birthdate = new Date(data.birthdate);
 		if (data.sex) person.sex = data.sex;
 		if (data.barangayId !== undefined) person.barangayId = data.barangayId;
 		if (data.purok !== undefined) person.purok = data.purok;
+		if (data.isSupporter !== undefined) person.isSupporter = data.isSupporter;
+		if (data.isLeader !== undefined) person.isLeader = data.isLeader;
 
 		await person.save();
 

@@ -16,10 +16,14 @@ export const GET: RequestHandler = async ({ url }) => {
 				id: true,
 				firstName: true,
 				lastName: true,
+				middleName: true,
+				extensionName: true,
 				birthdate: true,
+				barangayId: true,
 				purok: true,
 				sex: true,
 				isSupporter: true,
+				isLeader: true,
 				barangay: { 
 					id: true,
 					name: true,
@@ -62,10 +66,14 @@ export const POST: RequestHandler = async ({ request }) => {
 		const person = new Person();
 		person.firstName = data.firstName;
 		person.lastName = data.lastName;
+		person.middleName = data.middleName || null;
+		person.extensionName = data.extensionName || null;
 		person.birthdate = new Date(data.birthdate);
 		person.sex = data.sex;
 		person.barangayId = data.barangayId || null;
 		person.purok = data.purok || null;
+		person.isSupporter = data.isSupporter !== undefined ? data.isSupporter : null;
+		person.isLeader = data.isLeader || false;
 
 		await person.save();
 
