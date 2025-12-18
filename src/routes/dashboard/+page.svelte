@@ -20,14 +20,14 @@
 	</div>
 
 	<div class="row g-4">
-		<!-- Left Column: People Statistics -->
-		<div class="col-lg-6">
-			<PeopleCountAccordion />
+		<!-- Top Row: Election Results Map -->
+		<div class="col-12">
+			<ElectionResultsMap />
 		</div>
 
-		<!-- Right Column: Election Results Map -->
-		<div class="col-lg-6">
-			<ElectionResultsMap />
+		<!-- Bottom Row: People Statistics -->
+		<div class="col-12">
+			<PeopleCountAccordion />
 		</div>
 	</div>
 </div>

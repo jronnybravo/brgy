@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { Locality } from '$lib/database/entities/Locality';
-import { handleConnectionError } from '$lib/database/connection-error-handler';
+import { ConnectionErrorHandler } from '$lib/database/connection-error-handler';
 
 // Retry logic for failed queries
 async function fetchWithRetry<T>(
@@ -110,7 +110,7 @@ export const GET: RequestHandler = async () => {
 		console.error('Error fetching people stats:', error);
 		
 		// Handle connection errors more gracefully
-		const errorMessage = handleConnectionError(error);
+		const errorMessage = ConnectionErrorHandler.getFriendlyMessage(error);
 		
 		return json(
 			{

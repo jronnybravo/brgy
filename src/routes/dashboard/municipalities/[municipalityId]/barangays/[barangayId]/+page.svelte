@@ -30,6 +30,7 @@
 		medicineNames: Record<string, number>;
 		assistanceByPerson: Record<string, number>;
 		medicinesByPerson: Record<string, number>;
+		supporterDistribution?: Record<string, number>;
 	}
 
 	export let data: PageData;
@@ -38,7 +39,8 @@
 		financial: null as HTMLCanvasElement | null,
 		medicine: null as HTMLCanvasElement | null,
 		types: null as HTMLCanvasElement | null,
-		medicines: null as HTMLCanvasElement | null
+		medicines: null as HTMLCanvasElement | null,
+		supporter: null as HTMLCanvasElement | null
 	};
 
 	let charts: Record<string, Chart> = {};
@@ -116,6 +118,59 @@
 		charts[label] = new Chart(canvasElement, config);
 	}
 
+	function createBarChart(
+		canvasElement: HTMLCanvasElement,
+		label: string,
+		data: Record<string, number>
+	) {
+		if (charts[label]) {
+			charts[label].destroy();
+		}
+
+		const labels = Object.keys(data);
+		const values = Object.values(data);
+		const backgroundColors = getColorArray(labels.length);
+
+		const config: ChartConfiguration = {
+			type: 'bar',
+			data: {
+				labels,
+				datasets: [
+					{
+						data: values,
+						backgroundColor: backgroundColors,
+						borderColor: '#fff',
+						borderWidth: 1
+					}
+				]
+			},
+			options: {
+				indexAxis: 'y' as const,
+				responsive: true,
+				maintainAspectRatio: true,
+				plugins: {
+					legend: {
+						display: false
+					},
+					tooltip: {
+						callbacks: {
+							label: function(context: any) {
+								return context.parsed.x.toLocaleString();
+							}
+						}
+					}
+				},
+				scales: {
+					x: {
+						beginAtZero: true
+					}
+				}
+			}
+		};
+
+		charts[label] = new Chart(canvasElement, config);
+	}
+
 	$: filteredPeople = data.people.filter(p => {
 		const fullName = `${p.firstName} ${p.lastName}`.toLowerCase();
 		return fullName.includes(searchQuery.toLowerCase());
@@ -140,21 +195,30 @@
 			);
 		}
 
-		// Create Financial Assistance Types pie chart
+		// Create Financial Assistance Types bar chart
 		if (chartContainers.types && data.assistanceByType) {
-			createPieChart(
+			createBarChart(
 				chartContainers.types,
 				'types',
 				data.assistanceByType
 			);
 		}
 
-		// Create Medicine Names pie chart
+		// Create Medicine Names bar chart
 		if (chartContainers.medicines && data.medicineNames) {
-			createPieChart(
+			createBarChart(
 				chartContainers.medicines,
 				'medicines',
 				data.medicineNames
+			);
+		}
+
+		// Create Supporter Distribution pie chart
+		if (chartContainers.supporter && data.supporterDistribution) {
+			createPieChart(
+				chartContainers.supporter,
+				'supporter',
+				data.supporterDistribution
 			);
 		}
 
@@ -266,7 +330,7 @@
 
 
 	<!-- Charts Row 2 -->
-	<div class="row g-4">
+	<div class="row g-4 mb-5">
 		<div class="col-lg-6">
 			<div class="card shadow-sm border-0 h-100">
 				<div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
@@ -284,6 +348,20 @@
 				</div>
 				<div class="card-body" style="height: 350px;">
 					<canvas bind:this={chartContainers.medicines}></canvas>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Charts Row 3 -->
+	<div class="row g-4">
+		<div class="col-lg-6">
+			<div class="card shadow-sm border-0 h-100">
+				<div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+					<h5 class="mb-0">👥 Supporters Distribution</h5>
+				</div>
+				<div class="card-body" style="height: 350px;">
+					<canvas bind:this={chartContainers.supporter}></canvas>
 				</div>
 			</div>
 		</div>

@@ -155,6 +155,22 @@ export const load: PageServerLoad = async ({ params }) => {
 			medicineNames[name] = (medicineNames[name] || 0) + 1;
 		}
 
+		// Calculate supporter distribution
+		const supporterDistribution: Record<string, number> = {
+			'Supporters': 0,
+			'Non-Supporters': 0,
+			'Unsure': 0
+		};
+		people.forEach(person => {
+			if (person.isSupporter === true) {
+				supporterDistribution['Supporters']++;
+			} else if (person.isSupporter === false) {
+				supporterDistribution['Non-Supporters']++;
+			} else {
+				supporterDistribution['Unsure']++;
+			}
+		});
+
 		return {
 			municipality: serializableMunicipality,
 			barangay: serializableBarangay,
@@ -167,7 +183,8 @@ export const load: PageServerLoad = async ({ params }) => {
 			assistanceByType,
 			assistanceByPerson,
 			medicinesByPerson,
-			medicineNames
+			medicineNames,
+			supporterDistribution
 		};
 	} catch (e) {
 		console.error('Error loading barangay details:', e);

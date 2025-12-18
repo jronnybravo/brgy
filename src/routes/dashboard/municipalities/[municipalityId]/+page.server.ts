@@ -101,6 +101,22 @@ export const load: PageServerLoad = async ({ params }) => {
 
 		const totalMedicineAssistances = medicineAssistances.length;
 
+		// Calculate supporter distribution
+		const supporterDistribution: Record<string, number> = {
+			'Supporters': 0,
+			'Non-Supporters': 0,
+			'Unsure': 0
+		};
+		peopleInMunicipality.forEach(person => {
+			if (person.isSupporter === true) {
+				supporterDistribution['Supporters']++;
+			} else if (person.isSupporter === false) {
+				supporterDistribution['Non-Supporters']++;
+			} else {
+				supporterDistribution['Unsure']++;
+			}
+		});
+
 		// Only return serializable data (convert Locality objects to plain objects)
 		const serializableMunicipality = {
 			id: municipality.id,
@@ -158,7 +174,8 @@ export const load: PageServerLoad = async ({ params }) => {
 			assistanceByType,
 			assistanceByMonth,
 			financialByBarangay,
-			medicineByBarangay
+			medicineByBarangay,
+			supporterDistribution
 		};
 	} catch (e) {
 		console.error('Error loading municipality details:', e);

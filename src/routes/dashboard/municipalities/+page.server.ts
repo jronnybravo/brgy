@@ -93,12 +93,29 @@ export const load: PageServerLoad = async () => {
 			medicineNames[name] = (medicineNames[name] || 0) + 1;
 		});
 
+		// 5. Supporter distribution
+		const supporterDistribution: Record<string, number> = {
+			'Supporters': 0,
+			'Non-Supporters': 0,
+			'Unsure': 0
+		};
+		allPeople.forEach(person => {
+			if (person.isSupporter === true) {
+				supporterDistribution['Supporters']++;
+			} else if (person.isSupporter === false) {
+				supporterDistribution['Non-Supporters']++;
+			} else {
+				supporterDistribution['Unsure']++;
+			}
+		});
+
 		return {
 			municipalities: municipalitiesWithStats,
 			totalFinancialByMunicipality,
 			totalMedicinesByMunicipality,
 			assistanceByType,
-			medicineNames
+			medicineNames,
+			supporterDistribution
 		};
 	} catch (error) {
 		console.error('Error loading municipalities:', error);

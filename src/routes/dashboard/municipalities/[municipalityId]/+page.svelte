@@ -30,6 +30,7 @@
 		assistanceByMonth: Record<string, number>;
 		financialByBarangay?: Record<string, number>;
 		medicineByBarangay?: Record<string, number>;
+		supporterDistribution?: Record<string, number>;
 	}
 
 	export let data: PageData;
@@ -38,7 +39,8 @@
 		financialBarangay: null as HTMLCanvasElement | null,
 		medicineBarangay: null as HTMLCanvasElement | null,
 		assistanceTypes: null as HTMLCanvasElement | null,
-		medicines: null as HTMLCanvasElement | null
+		medicines: null as HTMLCanvasElement | null,
+		supporter: null as HTMLCanvasElement | null
 	};
 
 	let charts: Record<string, Chart> = {};
@@ -119,6 +121,59 @@
 		charts[label] = new Chart(canvasElement, config);
 	}
 
+	function createBarChart(
+		canvasElement: HTMLCanvasElement,
+		label: string,
+		data: Record<string, number>
+	) {
+		if (charts[label]) {
+			charts[label].destroy();
+		}
+
+		const labels = Object.keys(data);
+		const values = Object.values(data);
+		const backgroundColors = getColorArray(labels.length);
+
+		const config: ChartConfiguration = {
+			type: 'bar',
+			data: {
+				labels,
+				datasets: [
+					{
+						data: values,
+						backgroundColor: backgroundColors,
+						borderColor: '#fff',
+						borderWidth: 1
+					}
+				]
+			},
+			options: {
+				indexAxis: 'y' as const,
+				responsive: true,
+				maintainAspectRatio: true,
+				plugins: {
+					legend: {
+						display: false
+					},
+					tooltip: {
+						callbacks: {
+							label: function(context: any) {
+								return context.parsed.x.toLocaleString();
+							}
+						}
+					}
+				},
+				scales: {
+					x: {
+						beginAtZero: true
+					}
+				}
+			}
+		};
+
+		charts[label] = new Chart(canvasElement, config);
+	}
+
 	onMount(() => {
 		// Create Financial Assistance by Barangay pie chart
 		if (chartContainers.financialBarangay && data.financialByBarangay) {
@@ -138,16 +193,16 @@
 			);
 		}
 
-		// Create Financial Assistance Types pie chart
+		// Create Financial Assistance Types bar chart
 		if (chartContainers.assistanceTypes && data.assistanceByType) {
-			createPieChart(
+			createBarChart(
 				chartContainers.assistanceTypes,
 				'assistanceTypes',
 				data.assistanceByType
 			);
 		}
 
-		// Create Medicines pie chart (build from financialAssistances and medicineAssistances data)
+		// Create Medicines bar chart (build from medicineAssistances data)
 		if (chartContainers.medicines && data.medicineAssistances) {
 			const medicineNames: Record<string, number> = {};
 			data.medicineAssistances.forEach(ma => {
@@ -155,12 +210,21 @@
 				medicineNames[name] = (medicineNames[name] || 0) + 1;
 			});
 			if (Object.keys(medicineNames).length > 0) {
-				createPieChart(
+				createBarChart(
 					chartContainers.medicines,
 					'medicines',
 					medicineNames
 				);
 			}
+		}
+
+		// Create Supporter Distribution pie chart
+		if (chartContainers.supporter && data.supporterDistribution) {
+			createPieChart(
+				chartContainers.supporter,
+				'supporter',
+				data.supporterDistribution
+			);
 		}
 
 		return () => {
@@ -317,6 +381,8 @@
 								<span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
 							{/if}
 						</th>
+						<th class="text-end">Financial Aid (total)</th>
+						<th class="text-center">Medicine Aid Records</th>
 						<th class="text-center">Action</th>
 					</tr>
 				</thead>
@@ -327,8 +393,20 @@
 							<td class="text-center">
 								<span class="badge" style="background-color: #3498db;">{barangay.type}</span>
 							</td>
-							<td class="text-end">{barangay.population?.toLocaleString() || 'N/A'}</td>
-							<td class="text-center">
+							<td class="text-end">{barangay.population?.toLocaleString() || 'N/A'}</td>						<td class="text-end">
+							{#if data.financialByBarangay && data.financialByBarangay[barangay.name] > 0}
+								<span class="badge bg-success">{formatCurrency(data.financialByBarangay[barangay.name])}</span>
+							{:else}
+								<span class="badge bg-light text-dark">-</span>
+							{/if}
+						</td>
+						<td class="text-center">
+							{#if data.medicineByBarangay && data.medicineByBarangay[barangay.name] > 0}
+								<span class="badge bg-info">{data.medicineByBarangay[barangay.name]}</span>
+							{:else}
+								<span class="badge bg-light text-dark">-</span>
+							{/if}
+						</td>							<td class="text-center">
 								<button
 									class="btn btn-sm btn-primary"
 									on:click={() => navigateToBarangay(barangay.id)}
@@ -426,7 +504,7 @@
 	</div>
 
 	<!-- Charts Row 2 -->
-	<div class="row g-4">
+	<div class="row g-4 mb-5">
 		<div class="col-lg-6">
 			<div class="card shadow-sm border-0 h-100">
 				<div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
@@ -451,6 +529,24 @@
 						<canvas bind:this={chartContainers.medicines}></canvas>
 					{:else}
 						<p class="text-muted text-center mt-5">No medicine data available</p>
+					{/if}
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Charts Row 3 -->
+	<div class="row g-4">
+		<div class="col-lg-6">
+			<div class="card shadow-sm border-0 h-100">
+				<div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+					<h5 class="mb-0">👥 Supporters Distribution</h5>
+				</div>
+				<div class="card-body" style="height: 350px;">
+					{#if data.supporterDistribution}
+						<canvas bind:this={chartContainers.supporter}></canvas>
+					{:else}
+						<p class="text-muted text-center mt-5">No supporter data available</p>
 					{/if}
 				</div>
 			</div>

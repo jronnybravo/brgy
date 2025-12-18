@@ -297,10 +297,12 @@
 						{/if}
 						<td>{person.purok || '-'}</td>
 						<td>
-							{#if person.isSupporter}
-								<span class="badge bg-info">Yes</span>
+							{#if person.isSupporter === null}
+								<span class="badge bg-secondary">Unsure</span>
+							{:else if person.isSupporter}
+								<span class="badge bg-success">Yes</span>
 							{:else}
-								<span class="badge bg-light text-dark">No</span>
+								<span class="badge bg-danger">No</span>
 							{/if}
 						</td>
 						<td class="text-end">
