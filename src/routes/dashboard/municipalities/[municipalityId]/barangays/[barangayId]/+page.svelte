@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { Chart } from 'chart.js/auto';
 	import type { ChartConfiguration } from 'chart.js/auto';
+	import PeopleTable from '$lib/components/PeopleTable.svelte';
 
 	interface Municipality {
 		id: number;
@@ -254,159 +255,13 @@
 	</div>
 
 	<!-- People Table -->
-	<div class="card mb-5 shadow-sm border-0">
-		<div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
-			<div class="row align-items-center">
-				<div class="col-md-8">
-					<h5 class="mb-0">👥 People in {data.barangay.name}</h5>
-				</div>
-				<div class="col-md-4">
-					<input
-						type="text"
-						class="form-control form-control-sm"
-						placeholder="Search people..."
-						value={tableSearchQuery}
-						on:input={handleTableSearch}
-						style="background-color: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);"
-					/>
-				</div>
-			</div>
-		</div>
-		<div class="table-responsive">
-			<table class="table table-hover mb-0">
-				<thead class="table-light">
-					<tr>
-						<th 
-							style="cursor: pointer;"
-							class:fw-bold={sortColumn === 'firstName'}
-							on:click={() => handleTableSort('firstName')}
-							role="button"
-							tabindex="0"
-							on:keydown={(e) => e.key === 'Enter' && handleTableSort('firstName')}
-						>
-							Name
-							{#if sortColumn === 'firstName'}
-								<span class="float-end">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-							{/if}
-						</th>
-						<th 
-							style="cursor: pointer;"
-							class:fw-bold={sortColumn === 'sex'}
-							on:click={() => handleTableSort('sex')}
-							role="button"
-							tabindex="0"
-							on:keydown={(e) => e.key === 'Enter' && handleTableSort('sex')}
-						>
-							Sex
-							{#if sortColumn === 'sex'}
-								<span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
-							{/if}
-						</th>
-						<th 
-							style="cursor: pointer;"
-							class:fw-bold={sortColumn === 'purok'}
-							on:click={() => handleTableSort('purok')}
-							role="button"
-							tabindex="0"
-							on:keydown={(e) => e.key === 'Enter' && handleTableSort('purok')}
-						>
-							Purok
-							{#if sortColumn === 'purok'}
-								<span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
-							{/if}
-						</th>
-						<th class="text-center">Status</th>
-						<th class="text-center">Financial Aid</th>
-						<th class="text-center">Medicine Aid</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each paginatedData as person (person.id)}
-						{@const age = person.birthdate ? new Date().getFullYear() - new Date(person.birthdate).getFullYear() : 'N/A'}
-						{@const personFinancialAssistances = data.financialAssistances.filter(fa => fa.personId === person.id)}
-						{@const personMedicineAssistances = data.medicineAssistances.filter(ma => ma.personId === person.id)}
-						<tr>
-							<td class="fw-bold" style="color: #2c3e50;">{person.firstName} {person.lastName}</td>
-							<td>{person.sex || '-'}</td>
-							<td>{person.purok || '-'}</td>
-							<td class="text-center">
-								{#if person.isLeader}
-									<span class="badge bg-warning">Leader</span>
-								{:else if person.isSupporter}
-									<span class="badge bg-info">Supporter</span>
-								{:else}
-									<span class="badge bg-secondary">Resident</span>
-								{/if}
-							</td>
-							<td class="text-center">
-								{#if personFinancialAssistances.length > 0}
-									<span class="badge bg-success">{personFinancialAssistances.length}</span>
-								{:else}
-									<span class="badge bg-light text-dark">-</span>
-								{/if}
-							</td>
-							<td class="text-center">
-								{#if personMedicineAssistances.length > 0}
-									<span class="badge bg-info">{personMedicineAssistances.length}</span>
-								{:else}
-									<span class="badge bg-light text-dark">-</span>
-								{/if}
-							</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
-		<div class="card-footer bg-light d-flex justify-content-between align-items-center">
-			<div class="text-muted small">
-				Showing {Math.min((currentPage - 1) * pageSize + 1, filteredData.length)} to {Math.min(currentPage * pageSize, filteredData.length)} of {filteredData.length} ({tableData.length} total)
-			</div>
-			<nav aria-label="Table pagination">
-				<ul class="pagination mb-0">
-					<li class="page-item" class:disabled={currentPage === 1}>
-						<button
-							class="page-link"
-							on:click={() => currentPage = 1}
-							disabled={currentPage === 1}
-						>
-							First
-						</button>
-					</li>
-					<li class="page-item" class:disabled={currentPage === 1}>
-						<button
-							class="page-link"
-							on:click={() => currentPage = Math.max(1, currentPage - 1)}
-							disabled={currentPage === 1}
-						>
-							Prev
-						</button>
-					</li>
-					<li class="page-item active">
-						<span class="page-link">
-							Page {currentPage} of {totalPages || 1}
-						</span>
-					</li>
-					<li class="page-item" class:disabled={currentPage === totalPages || totalPages === 0}>
-						<button
-							class="page-link"
-							on:click={() => currentPage = Math.min(totalPages, currentPage + 1)}
-							disabled={currentPage === totalPages || totalPages === 0}
-						>
-							Next
-						</button>
-					</li>
-					<li class="page-item" class:disabled={currentPage === totalPages || totalPages === 0}>
-						<button
-							class="page-link"
-							on:click={() => currentPage = totalPages}
-							disabled={currentPage === totalPages || totalPages === 0}
-						>
-							Last
-						</button>
-					</li>
-				</ul>
-			</nav>
-		</div>
+	<div class="mb-5">
+		<PeopleTable 
+			people={data.people}
+			financialAssistances={data.financialAssistances}
+			medicineAssistances={data.medicineAssistances}
+			showLocationColumns={false}
+		/>
 	</div>
 
 

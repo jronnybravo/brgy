@@ -5,12 +5,39 @@ import { Assistance, FinancialAssistance, MedicineAssistance, FinancialAssistanc
 export const GET: RequestHandler = async ({ url }) => {
 	try {
 		const personId = url.searchParams.get('personId');
+		const type = url.searchParams.get('type');
 
 		const where: any = {};
 		if (personId) {
 			where.personId = parseInt(personId);
 		}
 
+		// If specific type requested, return only that type
+		if (type === 'financial') {
+			const financialAssistances = await FinancialAssistance.find({
+				where: Object.keys(where).length > 0 ? where : {},
+				relations: { person: true},
+				order: { disbursed_date: 'DESC', createdAt: 'DESC' }
+			});
+			return json({
+				success: true,
+				data: financialAssistances
+			});
+		}
+
+		if (type === 'medicine') {
+			const medicineAssistances = await MedicineAssistance.find({
+				where: Object.keys(where).length > 0 ? where : {},
+				relations: { person: true},
+				order: { disbursed_date: 'DESC', createdAt: 'DESC' }
+			});
+			return json({
+				success: true,
+				data: medicineAssistances
+			});
+		}
+
+		// If no type specified, return both
 		const financialAssistances = await FinancialAssistance.find({
 			where: Object.keys(where).length > 0 ? where : {},
 			relations: { person: true},

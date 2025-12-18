@@ -19,6 +19,7 @@ export const GET: RequestHandler = async ({ url }) => {
 				birthdate: true,
 				purok: true,
 				sex: true,
+				isSupporter: true,
 				barangay: { 
 					id: true,
 					name: true,
