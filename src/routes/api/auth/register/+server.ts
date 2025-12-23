@@ -33,7 +33,6 @@ export const POST: RequestHandler = async ({ request }) => {
 			email,
 			password: hashedPassword,
 			role: 'user',
-			isActive: true
 		});
 
 		await userRepository.save(user);

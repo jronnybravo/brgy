@@ -29,7 +29,7 @@ export abstract class Assistance extends BaseEntity {
 	updatedAt!: Date;
 }
 
-@Entity()
+@Entity('financial_assistances')
 export class FinancialAssistance extends Assistance {
 	@Column({ type: 'enum', enum: FinancialAssistanceType })
 	type!: FinancialAssistanceType;
@@ -38,7 +38,7 @@ export class FinancialAssistance extends Assistance {
 	person!: Person;
 }
 
-@Entity()
+@Entity('medicine_assistances')
 export class MedicineAssistance extends Assistance {
 	@Column({ type: 'varchar' })
 	medicine_name!: string;

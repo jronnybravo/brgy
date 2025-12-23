@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToMany, JoinTable } from 'typeorm';
+import { Locality } from './Locality';
 
 @Entity('users')
 export class User {
@@ -17,12 +18,17 @@ export class User {
 	@Column({ type: 'varchar', default: 'user' })
 	role!: string; // 'admin' or 'user'
 
-	@Column({ type: 'boolean', default: true })
-	isActive!: boolean;
-
 	@CreateDateColumn()
 	createdAt!: Date;
 
 	@UpdateDateColumn()
 	updatedAt!: Date;
+
+	@ManyToMany(() => Locality, { eager: false })
+	@JoinTable({
+		name: 'user_jurisdictions',
+		joinColumn: { name: 'user_id', referencedColumnName: 'id' },
+		inverseJoinColumn: { name: 'locality_id', referencedColumnName: 'id' }
+	})
+	jurisdictions?: Locality[];
 }

@@ -44,7 +44,7 @@ export const GET: RequestHandler = async () => {
 				COALESCE(fa.type, 'UNKNOWN') as type,
 				COALESCE(SUM(CASE WHEN fa.type IS NOT NULL THEN fa.value ELSE 0 END), 0) as typeAmount
 			FROM localities l
-			LEFT JOIN people p ON p.barangayId = l.id
+			LEFT JOIN persons p ON p.barangayId = l.id
 			LEFT JOIN financial_assistances fa ON fa.personId = p.id
 			WHERE l.type = 'barangay'
 			AND l.parentId IN (

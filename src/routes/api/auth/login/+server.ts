@@ -27,10 +27,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			return json({ error: 'Invalid credentials' }, { status: 401 });
 		}
 
-		if (!user.isActive) {
-			return json({ error: 'Account is inactive' }, { status: 401 });
-		}
-
 		// Verify password
 		const isValidPassword = await bcrypt.compare(password, user.password);
 		if (!isValidPassword) {

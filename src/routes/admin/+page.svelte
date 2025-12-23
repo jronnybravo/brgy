@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 
 	// Tab management
-	let activeTab: 'localities' | 'people' = 'localities';
+	let activeTab: 'localities' | 'people' | 'users' = 'localities';
 
 	// Localities state
 	let localities: any[] = [];
@@ -346,6 +346,13 @@
 			>
 				👥 People
 			</button>
+			<a
+				href="/admin/users"
+				class="nav-link"
+				style="color: #2c3e50; font-weight: 500; border-bottom: 3px solid transparent;"
+			>
+				🔑 Users
+			</a>
 		</div>
 
 		<!-- ============= LOCALITIES TAB ============= -->
