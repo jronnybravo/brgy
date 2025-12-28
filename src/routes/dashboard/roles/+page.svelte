@@ -14,9 +14,15 @@
 			id: number;
 			username: string;
 		};
+		capabilities: {
+			canCreateRoles: boolean;
+			canUpdateRoles: boolean;
+			canDeleteRoles: boolean;
+		};
 	}
 
 	export let data: PageData;
+	let capabilities = data.capabilities;
 
 	let roles = data.roles;
 	let showDeleteModal = false;
@@ -88,12 +94,13 @@
 		<p class="lead" style="color: #7f8c8d;">Create and manage user roles</p>
 	</div>
 
-	<!-- Create Button -->
-	<div class="mb-4">
-		<a href="/dashboard/roles/new" class="btn" style="background-color: #27ae60; color: white; border: none; font-weight: 500;">
-			+ Create New Role
-		</a>
-	</div>
+	{#if capabilities.canCreateRoles}
+		<div class="mb-4">
+			<a href="/dashboard/roles/new" class="btn" style="background-color: #27ae60; color: white; border: none; font-weight: 500;">
+				+ Create New Role
+			</a>
+		</div>
+	{/if}
 
 	<!-- Roles Table -->
 	<div class="card shadow-sm border-0 rounded-3">
@@ -121,18 +128,18 @@
 							<td>{role.permissions.join(', ')}</td>
 							<td><small style="color: #7f8c8d;">{getFormattedDate(role.createdAt)}</small></td>
 							<td>
-								<a
-									href="/dashboard/roles/{role.id}"
-									class="btn btn-sm btn-outline-primary"
-								>
-									Edit
-								</a>
-								<button
-									on:click={() => openDeleteModal(role)}
-									class="btn btn-sm btn-outline-danger"
-								>
-									Delete
-								</button>
+								{#if capabilities.canUpdateRoles}
+									<a href="/dashboard/roles/{role.id}"
+										class="btn btn-sm btn-outline-primary">
+										Edit
+									</a>
+								{/if}
+								{#if capabilities.canDeleteRoles}
+									<button on:click={() => openDeleteModal(role)}
+										class="btn btn-sm btn-outline-danger">
+										Delete
+									</button>
+								{/if}
 							</td>
 						</tr>
 					{/each}

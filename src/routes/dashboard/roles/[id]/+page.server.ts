@@ -1,17 +1,35 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getDataSource } from '$lib/database/data-source';
 import { Role } from '$lib/database/entities/Role';
+import { User } from '$lib/database/entities/User';
+import { Permission } from '$lib/utils/Permission';
 
-export const load: PageServerLoad = async ({ locals, params }) => {
+export const load: PageServerLoad = async ({ locals, params, cookies }) => {
 	if (!locals.user) {
 		throw redirect(302, '/login');
+	}
+
+	const currentUser = await User.findOne({
+		where: { id: locals.user.id },
+		relations: { role: true }
+	});
+	if(!currentUser) {
+		cookies.delete('auth_token', { path: '/' });
+		throw redirect(302, '/login');
+	}
+	if(!currentUser.can(Permission.READ_ROLES)) {
+		throw error(401, 'Unauthorized');
 	}
 
 	const roleId = params.id;
 
 	// If id is 'new', return empty role data for creation
 	if (roleId === 'new') {
+		if(!currentUser.can(Permission.CREATE_ROLES)) {
+			throw error(401, 'Unauthorized');
+		}
+
 		return {
 			role: null,
 			isNew: true,
@@ -26,6 +44,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const numRoleId = parseInt(roleId || '0');
 	if (isNaN(numRoleId)) {
 		throw redirect(302, '/dashboard/roles');
+	}
+
+	if(!currentUser.can(Permission.UPDATE_ROLES)) {
+		throw error(401, 'Unauthorized');
 	}
 
 	const dataSource = await getDataSource();

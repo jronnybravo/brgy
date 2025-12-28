@@ -1,22 +1,41 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getDataSource } from '$lib/database/data-source';
 import { User } from '$lib/database/entities/User';
 import { instanceToPlain } from 'class-transformer';
+import { th } from '@faker-js/faker';
+import { Permission } from '$lib/utils/Permission';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, cookies }) => {
 	if (!locals.user) {
 		throw redirect(302, '/login');
 	}
 
-	const users = instanceToPlain(await User.find({ order: { id: 'ASC' } }));
-	const currentUser = instanceToPlain(await User.findOne({
-		where: { id: locals.user.id }
-	}));
+	const currentUser = await User.findOne({
+		where: { id: locals.user.id },
+		relations: { role: true }
+	});
+	if(!currentUser) {
+		cookies.delete('auth_token', { path: '/' });
+		throw redirect(302, '/login');
+	}
 
+	if(!currentUser.can(Permission.READ_USERS)) {
+		throw error(401, 'Unauthorized');
+	}
+
+	const capabilities = {
+		canCreateUsers: currentUser.can(Permission.CREATE_USERS),
+		canUpdateUsers: currentUser.can(Permission.UPDATE_USERS),
+		canDeleteUsers: currentUser.can(Permission.DELETE_USERS),
+	}
+
+	const users = instanceToPlain(await User.find({ order: { id: 'ASC' } }));
+	
 	return {
 		users,
-		currentUser,
+		currentUser: instanceToPlain(currentUser),
+		capabilities
 	};
 };
 

@@ -23,6 +23,11 @@
 			username: string;
 		};
 		localities: LocalityNode[];
+		capabilities: {
+			canCreateUsers: boolean;
+			canUpdateUsers: boolean;
+			canDeleteUsers: boolean;
+		};
 	}
 
 	export let data: PageData;

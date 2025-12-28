@@ -3,13 +3,17 @@ import type { PageServerLoad } from './$types';
 import { User } from '$lib/database/entities/User';
 import { Permission } from '$lib/utils/Permission';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, cookies }) => {
     if (!locals.user) {
         throw redirect(302, '/login');
     }
 
-    const currentUser = await User.findOneBy({ id: locals.user.id });
+    const currentUser = await User.findOne({
+		where: { id: locals.user.id },
+		relations: { role: true }
+	});
     if (!currentUser) {
+        cookies.delete('auth_token', { path: '/' });
         throw redirect(302, '/login');
     }
 

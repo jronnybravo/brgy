@@ -1,9 +1,10 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getDataSource } from '$lib/database/data-source';
 import { User } from '$lib/database/entities/User';
 import { Locality } from '$lib/database/entities/Locality';
 import bcrypt from 'bcryptjs';
+import { Permission } from '$lib/utils/Permission';
 
 interface LocalityDTO {
 	id: number;
@@ -32,9 +33,22 @@ function getMaxTreeDepth(node: Locality, depth = 0): number {
 	return Math.max(...node.children.map(child => getMaxTreeDepth(child, depth + 1)));
 }
 
-export const load: PageServerLoad = async ({ locals, params }) => {
+export const load: PageServerLoad = async ({ locals, params, cookies }) => {
 	if (!locals.user) {
 		throw redirect(302, '/login');
+	}
+
+	const currentUser = await User.findOne({
+		where: { id: locals.user.id },
+		relations: { role: true }
+	});
+	if(!currentUser) {
+		cookies.delete('auth_token', { path: '/' });
+		throw redirect(302, '/login');
+	}
+
+	if(!currentUser.can(Permission.READ_USERS)) {
+		throw error(401, 'Unauthorized');
 	}
 
 	const userId = params.id;
@@ -121,6 +135,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	// If id is 'new', return empty user data for creation
 	if (userId === 'new') {
+		if(!currentUser.can(Permission.CREATE_USERS)) {
+			throw error(401, 'Unauthorized');
+		}
+
 		return {
 			user: null,
 			isNew: true,
@@ -136,6 +154,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const numUserId = parseInt(userId || '0');
 	if (isNaN(numUserId)) {
 		throw redirect(302, '/dashboard/users');
+	}
+
+	if(!currentUser.can(Permission.UPDATE_USERS)) {
+		throw error(401, 'Unauthorized');
 	}
 
 	const userRepository = dataSource.getRepository(User);

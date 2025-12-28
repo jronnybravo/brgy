@@ -15,11 +15,17 @@
 		currentUser: {
 			id: number;
 		};
+		capabilities: {
+			canCreateUsers: boolean;
+			canUpdateUsers: boolean;
+			canDeleteUsers: boolean;
+		};
 	}
 
 	export let data: PageData;
 
 	let users = data.users;
+	let capabilities = data.capabilities;
 
 	$: users = data.users;
 
@@ -69,12 +75,13 @@
 		<p class="lead" style="color: #7f8c8d;">Create, edit, and manage user accounts</p>
 	</div>
 
-	<!-- Create User Form Section -->
-	<div class="mb-4">
-		<a href="/dashboard/users/new" class="btn" style="background-color: #27ae60; color: white; border: none; font-weight: 500;">
-			+ Create New User
-		</a>
-	</div>
+	{#if capabilities.canCreateUsers}
+		<div class="mb-4">
+			<a href="/dashboard/users/new" class="btn" style="background-color: #27ae60; color: white; border: none; font-weight: 500;">
+				+ Create New User
+			</a>
+		</div>
+	{/if}
 
 	<!-- Users Table -->
 	<div class="card shadow-sm border-0 rounded-3">
@@ -104,17 +111,21 @@
 							</td>
 							<td><small style="color: #7f8c8d;">{getFormattedDate(user.createdAt)}</small></td>
 							<td>
+								{#if capabilities.canUpdateUsers}
 								<a href="/dashboard/users/{user.id}"
 									class="btn btn-sm btn-outline-primary">
 									Edit
 								</a>
-								<button
-									on:click={() => handleDeleteUser(user.id, user.username)}
-									class="btn btn-sm btn-outline-danger"
-									disabled={user.id === data.currentUser.id}
-									title={user.id === data.currentUser.id ? 'Cannot delete your own account' : ''}>
-									Delete
-								</button>
+								{/if}
+								{#if capabilities.canDeleteUsers}
+									<button
+										on:click={() => handleDeleteUser(user.id, user.username)}
+										class="btn btn-sm btn-outline-danger"
+										disabled={user.id === data.currentUser.id}
+										title={user.id === data.currentUser.id ? 'Cannot delete your own account' : ''}>
+										Delete
+									</button>
+								{/if}
 							</td>
 						</tr>
 					{/each}
