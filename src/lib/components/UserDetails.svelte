@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { onMount } from 'svelte';
-	import JurisdictionTreeSelector from './JurisdictionTreeSelector.svelte';
+	import JurisdictionTreeSelector from '$lib/components/JurisdictionTreeSelector.svelte';
 
 	interface LocalityNode {
 		id: number;
@@ -13,7 +13,7 @@
 		id: number;
 		username: string;
 		email: string;
-		role: string;
+		roleId: number | null;
 		jurisdictionIds?: number[];
 	} | null = null;
 	export let form: any = null;
@@ -27,7 +27,7 @@
 	// Form state for new user creation
 	let formUsername = '';
 	let formEmail = '';
-	let formRole = 'user';
+	let formRoleId: number | null = null;
 	let selectedJurisdictions: number[] = [];
 
 	// Roles state
@@ -60,7 +60,7 @@
 	$: if (user && !isNew) {
 		formUsername = user.username;
 		formEmail = user.email;
-		formRole = user.role;
+		formRoleId = user.roleId;
 	}
 
 	function handleProfileSubmit() {
@@ -143,7 +143,7 @@
 						<div class="mb-3">
 							<small style="color: #7f8c8d;">Role</small>
 							<p class="form-control-plaintext mb-0">
-								<span class="badge bg-primary">{user?.role}</span>
+								<span class="badge bg-primary">{user?.roleId}</span>
 							</p>
 						</div>
 
@@ -207,14 +207,14 @@
 								<small class="text-danger">{rolesError}</small>
 							</div>
 						{:else}
-							<select id="role" class="form-select" name="role" bind:value={formRole} style="border-color: #dee2e6;">
+							<select id="role" class="form-select" name="role" bind:value={formRoleId} style="border-color: #dee2e6;">
 								{#each roles as role}
-									<option value={role.name}>{role.name}</option>
+									<option value={role.id}>{role.name}</option>
 								{/each}
 							</select>
-							{#if roles.length > 0 && roles.find(r => r.name === formRole)?.description}
+							{#if roles.length > 0 && roles.find(r => r.id === formRoleId)?.description}
 								<small class="text-muted d-block mt-1">
-									{roles.find(r => r.name === formRole)?.description}
+									{roles.find(r => r.id === formRoleId)?.description}
 								</small>
 							{/if}
 						{/if}
@@ -259,7 +259,7 @@
                             <!-- Hidden fields from profile for new user creation -->
                             <input type="hidden" name="username" value={formUsername} />
                             <input type="hidden" name="email" value={formEmail} />
-                            <input type="hidden" name="role" value={formRole} />
+                            <input type="hidden" name="roleId" value={formRoleId} />
                             
                             <!-- Hidden jurisdictions input -->
                             {#each selectedJurisdictions as jurisdictionId (jurisdictionId)}
@@ -381,7 +381,7 @@
 						<div class="col-12 col-sm-6 mb-3">
 							<p class="text-muted small mb-1">Account Role</p>
 							<p class="fw-medium" style="color: #2c3e50;">
-								<span class="badge bg-info text-dark text-capitalize">{user?.role}</span>
+								<span class="badge bg-info text-dark text-capitalize">{user?.roleId}</span>
 							</p>
 						</div>
 					</div>

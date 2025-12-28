@@ -1,34 +1,32 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import PeopleTable from '$lib/components/PeopleTable.svelte';
+	import type { PageData } from './$types';
 
-	interface PageData {
-		user: {
-			id: number;
-			username: string;
-			role: string;
-		};
-	}
+	let { data }: { data: PageData } = $props();
+	const capabilities = $derived(data.capabilities as {
+		canCreatePersons: boolean;
+		canUpdatePersons: boolean;
+		canDeletePersons: boolean;
+	});
 
+	let people: any[] = $state([]);
+	let financialAssistances: any[] = $state([]);
+	let medicineAssistances: any[] = $state([]);
+	let loading = $state(false);
+	let error = $state('');
+	let showForm = $state(false);
+	let showUpload = $state(false);
+	let editingId: number | null = $state(null);
+	let municipalities: any[] = $state([]);
+	let barangays: any[] = $state([]);
+	let selectedMunicipality = $state('');
+	let uploadLoading = $state(false);
+	let uploadError = $state('');
+	let uploadSuccess = $state('');
+	let uploadResults: any = $state(null);
 
-	let people: any[] = [];
-	let financialAssistances: any[] = [];
-	let medicineAssistances: any[] = [];
-	let loading = false;
-	let error = '';
-	let showForm = false;
-	let showUpload = false;
-	let editingId: number | null = null;
-	let municipalities: any[] = [];
-	let barangays: any[] = [];
-	let searchQuery = '';
-	let selectedMunicipality = '';
-	let uploadLoading = false;
-	let uploadError = '';
-	let uploadSuccess = '';
-	let uploadResults: any = null;
-
-	let formData = {
+	let formData = $state({
 		firstName: '',
 		lastName: '',
 		middleName: '',
@@ -39,7 +37,7 @@
 		purok: '',
 		isSupporter: null as boolean | null,
 		isLeader: false
-	};
+	});
 
 	async function loadPeople() {
 		loading = true;
@@ -101,13 +99,13 @@
 		}
 	}
 
-	function getBarangaysForMunicipality(municipalityId: string) {
-		if (!municipalityId) return barangays;
-		const munId = parseInt(municipalityId);
-		return barangays.filter((b: any) => b.parentId === munId);
-	}
-
-	$: filteredBarangays = getBarangaysForMunicipality(selectedMunicipality);
+	let filteredBarangays = $derived.by(() => {
+		if (!selectedMunicipality) {
+			return barangays;
+		}
+		const municipalityId = parseInt(selectedMunicipality);
+		return barangays.filter((b: any) => b.parentId === municipalityId);
+	});
 
 	async function savePerson(e?: Event) {
 		e?.preventDefault();
@@ -245,8 +243,6 @@
 		}
 	}
 
-
-
 	onMount(async () => {
 		await loadPeople();
 		await loadMunicipalitiesAndBarangays();
@@ -257,14 +253,17 @@
 <div class="container-fluid p-4">
 	<div class="d-flex justify-content-between align-items-center mb-4">
 		<h1 class="display-5 fw-bold mb-0" style="color: #2c3e50; font-size: 2rem;">People Management</h1>
-		<div class="d-flex gap-2">
-			<button on:click={() => (showUpload = !showUpload)} class="btn btn-info btn-lg">
-				{showUpload ? '✕ Cancel' : '📤 Upload CSV'}
-			</button>
-			<button on:click={() => (showForm = !showForm)} class="btn btn-primary btn-lg">
-				{showForm ? '✕ Cancel' : '+ Add Person'}
-			</button>
-		</div>
+
+		{#if capabilities.canCreatePersons}
+			<div class="d-flex gap-2">
+				<button onclick={() => (showUpload = !showUpload)} class="btn btn-info btn-lg">
+					{showUpload ? '✕ Cancel' : '📤 Upload CSV'}
+				</button>
+				<button onclick={() => (showForm = !showForm)} class="btn btn-primary btn-lg">
+					{showForm ? '✕ Cancel' : '+ Add Person'}
+				</button>
+			</div>
+		{/if}
 	</div>
 
 	{#if error}
@@ -329,14 +328,12 @@
 					<label for="csvFile" class="btn btn-info btn-lg">
 						📁 Select CSV File
 					</label>
-					<input
-						id="csvFile"
+					<input id="csvFile"
 						type="file"
 						accept=".csv"
-						on:change={handleFileUpload}
+						onchange={handleFileUpload}
 						disabled={uploadLoading}
-						style="display: none;"
-					/>
+						style="display: none;" />
 				</div>
 
 				{#if uploadLoading}
@@ -362,10 +359,10 @@
 				<div class="modal-content">
 					<div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
 						<h5 class="modal-title">{editingId ? '✏️ Edit Person' : '➕ Add New Person'}</h5>
-						<button type="button" class="btn-close btn-close-white" on:click={resetForm}></button>
+						<button type="button" class="btn-close btn-close-white" onclick={resetForm}></button>
 					</div>
 					<div class="modal-body">
-						<form on:submit={savePerson} id="personForm">
+						<form onsubmit={savePerson} id="personForm">
 							<div class="row mb-3">
 								<div class="col-md-6">
 									<label for="lastName" class="form-label fw-500">Last Name *</label>
@@ -471,37 +468,31 @@
 									<div class="mb-3">
 										<div class="form-label fw-500 d-block mb-2">Is Supporter?</div>
 										<div class="btn-group" role="group" aria-label="Is Supporter options">
-											<input 
+											<input onchange={() => formData.isSupporter = true}
 												type="radio" 
 												class="btn-check" 
 												id="supporterYes" 
 												name="isSupporter" 
 												value="yes"
-												checked={formData.isSupporter === true}
-												on:change={() => formData.isSupporter = true}
-											/>
+												checked={formData.isSupporter === true} />
 											<label class="btn btn-outline-primary" for="supporterYes">Yes</label>
 
-											<input 
+											<input onchange={() => formData.isSupporter = false}
 												type="radio" 
 												class="btn-check" 
 												id="supporterNo" 
 												name="isSupporter" 
 												value="no"
-												checked={formData.isSupporter === false}
-												on:change={() => formData.isSupporter = false}
-											/>
+												checked={formData.isSupporter === false} />
 											<label class="btn btn-outline-primary" for="supporterNo">No</label>
 
-											<input 
+											<input onchange={() => formData.isSupporter = null}
 												type="radio" 
 												class="btn-check" 
 												id="supporterUnsure" 
 												name="isSupporter" 
 												value="unsure"
-												checked={formData.isSupporter === null}
-												on:change={() => formData.isSupporter = null}
-											/>
+												checked={formData.isSupporter === null} />
 											<label class="btn btn-outline-primary" for="supporterUnsure">Unsure</label>
 										</div>
 									</div>
@@ -525,7 +516,9 @@
 						</form>
 					</div>
 					<div class="modal-footer">
-						<button type="button" class="btn btn-secondary" on:click={resetForm}>Cancel</button>
+						<button onclick={resetForm} 
+							type="button"
+							class="btn btn-secondary">Cancel</button>
 						<button type="submit" form="personForm" class="btn btn-success">
 							{editingId ? '💾 Update' : '💾 Create'}
 						</button>
@@ -553,7 +546,7 @@
 					<small class="text-muted">Add your first person to get started</small>
 				</div>
 			{:else}
-				<PeopleTable 
+				<PeopleTable {capabilities}
 					{people}
 					{financialAssistances}
 					{medicineAssistances}

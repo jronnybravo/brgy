@@ -1,22 +1,25 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToMany, JoinTable } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToMany, JoinTable, BaseEntity, ManyToOne } from 'typeorm';
 import { Locality } from './Locality';
+import { Role } from './Role';
+import { Serializable } from './decorators/Serializable';
 
 @Entity('users')
-export class User {
+@Serializable()
+export class User extends BaseEntity {
 	@PrimaryGeneratedColumn()
 	id!: number;
 
-	@Column({ type: 'varchar', unique: true })
+	@Column('varchar', {unique: true })
 	username!: string;
 
-	@Column({ type: 'varchar', unique: true })
+	@Column('varchar', {unique: true })
 	email!: string;
 
-	@Column({ type: 'varchar' })
+	@Column('varchar')
 	password!: string;
 
-	@Column({ type: 'varchar', default: 'user' })
-	role!: string; // 'admin' or 'user'
+	@Column('int')
+	roleId: number | null = null;
 
 	@CreateDateColumn()
 	createdAt!: Date;
@@ -31,4 +34,11 @@ export class User {
 		inverseJoinColumn: { name: 'locality_id', referencedColumnName: 'id' }
 	})
 	jurisdictions?: Locality[];
+
+	@ManyToOne(() => Role, (role) => role.users, { eager: true })
+	role!: Role;
+
+	can(permission: string): boolean {
+		return this.role.can(permission);
+	}
 }

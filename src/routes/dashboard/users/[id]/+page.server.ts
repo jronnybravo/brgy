@@ -3,7 +3,6 @@ import type { Actions, PageServerLoad } from './$types';
 import { getDataSource } from '$lib/database/data-source';
 import { User } from '$lib/database/entities/User';
 import { Locality } from '$lib/database/entities/Locality';
-import { IsNull } from 'typeorm';
 import bcrypt from 'bcryptjs';
 
 interface LocalityDTO {
@@ -155,7 +154,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			id: user.id,
 			username: user.username,
 			email: user.email,
-			role: user.role,
+			roleId: user.roleId	,
 			jurisdictionIds: user.jurisdictions?.map(j => j.id) || []
 		},
 		isNew: false,
@@ -174,51 +173,39 @@ export const actions = {
 		const email = formData.get('email')?.toString();
 		const password = formData.get('newPassword')?.toString();
 		const confirmPassword = formData.get('confirmPassword')?.toString();
-		const role = formData.get('role')?.toString() || 'user';
+		const roleId = formData.get('roleId') ? parseInt(formData.get('roleId')!.toString()) : null;
 		const jurisdictionIds = formData.getAll('jurisdictions').map(id => parseInt(id.toString()));
 
-		// Validation
-		if (!username || !email) {
+		const errorResponse = {
+			username,
+			email,
+			roleId
+		};
+
+		if (!username || !email || !password) {
 			return fail(400, {
-				username,
-				email,
-				role,
-				error: 'Username and email are required'
+				...errorResponse,
+				error: 'Username, email, and password are required'
 			});
 		}
 
-		if (email && !email.includes('@')) {
+		if (!email.includes('@')) {
 			return fail(400, {
-				username,
-				email,
-				role,
+				...errorResponse,
 				error: 'Invalid email format'
-			});
-		}
-
-		if (!password) {
-			return fail(400, {
-				username,
-				email,
-				role,
-				error: 'Password is required for new users'
 			});
 		}
 
 		if (password.length < 6) {
 			return fail(400, {
-				username,
-				email,
-				role,
+				...errorResponse,
 				error: 'Password must be at least 6 characters long'
 			});
 		}
 
 		if (password !== confirmPassword) {
 			return fail(400, {
-				username,
-				email,
-				role,
+				...errorResponse,
 				error: 'Passwords do not match'
 			});
 		}
@@ -235,9 +222,7 @@ export const actions = {
 
 			if (existingUser) {
 				return fail(400, {
-					username,
-					email,
-					role,
+					...errorResponse,
 					error: 'Username or email already exists'
 				});
 			}
@@ -256,7 +241,7 @@ export const actions = {
 				username,
 				email,
 				password: hashedPassword,
-				role,
+				roleId,
 				jurisdictions
 			});
 
@@ -270,9 +255,7 @@ export const actions = {
 		} catch (error) {
 			console.error('Error creating user:', error);
 			return fail(500, {
-				username,
-				email,
-				role,
+				...errorResponse,
 				error: 'Failed to create user'
 			});
 		}
@@ -283,23 +266,25 @@ export const actions = {
 		const formData = await request.formData();
 		const username = formData.get('username')?.toString();
 		const email = formData.get('email')?.toString();
-		const role = formData.get('role')?.toString() || 'user';
+		const roleId = formData.get('roleId') ? parseInt(formData.get('roleId')!.toString()) : null;
 		const jurisdictionIds = formData.getAll('jurisdictions').map(id => parseInt(id.toString()));
+
+		const errorResponse = {
+			username,
+			email,
+			roleId
+		};
 
 		if (!username || !email) {
 			return fail(400, {
-				username,
-				email,
-				role,
+				...errorResponse,
 				error: 'Username and email are required'
 			});
 		}
 
 		if (email && !email.includes('@')) {
 			return fail(400, {
-				username,
-				email,
-				role,
+				...errorResponse,
 				error: 'Invalid email format'
 			});
 		}
@@ -321,9 +306,7 @@ export const actions = {
 
 			if (!user) {
 				return fail(404, {
-					username,
-					email,
-					role,
+					...errorResponse,
 					error: 'User not found'
 				});
 			}
@@ -336,9 +319,7 @@ export const actions = {
 
 				if (existingEmail) {
 					return fail(400, {
-						username,
-						email,
-						role,
+						...errorResponse,
 						error: 'Email already in use'
 					});
 				}
@@ -352,9 +333,7 @@ export const actions = {
 
 				if (existingUsername) {
 					return fail(400, {
-						username,
-						email,
-						role,
+						...errorResponse,
 						error: 'Username already in use'
 					});
 				}
@@ -362,7 +341,7 @@ export const actions = {
 
 			user.username = username;
 			user.email = email;
-			user.role = role || 'user';
+			user.roleId = roleId;
 
 			// Update jurisdictions
 			if (jurisdictionIds.length > 0) {
@@ -381,9 +360,7 @@ export const actions = {
 		} catch (error) {
 			console.error('Error updating profile:', error);
 			return fail(500, {
-				username,
-				email,
-				role,
+				...errorResponse,
 				error: 'Failed to update profile'
 			});
 		}

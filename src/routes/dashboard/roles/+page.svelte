@@ -154,7 +154,7 @@
 			<div class="modal-content">
 				<div class="modal-header border-bottom" style="border-color: #e9ecef !important;">
 					<h5 class="modal-title fw-bold" style="color: #2c3e50;">Delete Role</h5>
-					<button type="button" class="btn-close" on:click={closeDeleteModal}></button>
+					<button type="button" class="btn-close" aria-label="Close" on:click={closeDeleteModal}></button>
 				</div>
 				<div class="modal-body p-4">
 					<p class="mb-3" style="color: #2c3e50;">

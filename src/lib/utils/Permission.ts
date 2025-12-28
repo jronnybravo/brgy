@@ -13,11 +13,11 @@ export class Permission {
     static UPDATE_ROLES = 'Update Roles';
     static DELETE_ROLES = 'Delete Roles';
 
-    static MANAGE_PEOPLE = 'Manage People';
-    static CREATE_PEOPLE = 'Create People';
-    static READ_PEOPLE = 'Read People';
-    static UPDATE_PEOPLE = 'Update People';
-    static DELETE_PEOPLE = 'Delete People';
+    static MANAGE_PERSONS = 'Manage Persons';
+    static CREATE_PERSONS = 'Create Persons';
+    static READ_PERSONS = 'Read Persons';
+    static UPDATE_PERSONS = 'Update Persons';
+    static DELETE_PERSONS = 'Delete Persons';
 
     static MANAGE_ASSISTANCES = 'Manage Assistances';
     static CREATE_ASSISTANCES = 'Create Assistances';
@@ -40,11 +40,11 @@ export class Permission {
                     [this.UPDATE_ROLES]: { requires: [ this.READ_ROLES ] },
                     [this.DELETE_ROLES]: { requires: [ this.READ_ROLES ] },
                 },
-                [this.MANAGE_PEOPLE]: {
-                    [this.READ_PEOPLE]: true,
-                    [this.CREATE_PEOPLE]: { requires: [ this.READ_PEOPLE ] },
-                    [this.UPDATE_PEOPLE]: { requires: [ this.READ_PEOPLE ] },
-                    [this.DELETE_PEOPLE]: { requires: [ this.READ_PEOPLE ] },
+                [this.MANAGE_PERSONS]: {
+                    [this.READ_PERSONS]: true,
+                    [this.CREATE_PERSONS]: { requires: [ this.READ_PERSONS ] },
+                    [this.UPDATE_PERSONS]: { requires: [ this.READ_PERSONS ] },
+                    [this.DELETE_PERSONS]: { requires: [ this.READ_PERSONS ] },
                 },
                 [this.MANAGE_ASSISTANCES]: {
                     [this.READ_ASSISTANCES]: true,

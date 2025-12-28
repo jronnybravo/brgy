@@ -1,16 +1,22 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import type { LayoutData } from './$types';
 
-	interface PageData {
-		user: {
-			id: number;
-			username: string;
-			role: string;
-		};
-	}
+	let { data, children }: { data: LayoutData; children: any } = $props();
 
-	export let data: PageData;
+	let capabilities = $derived(data.capabilities as {
+        canReadUsers: boolean,
+		canReadRoles: boolean,
+		canReadPersons: boolean,
+		canReadAssistances: boolean,
+    });
+
+	let user = $derived(data.user as {
+		id: number,
+		username: string,
+	});
+
 
 	async function handleLogout() {
 		try {
@@ -21,7 +27,9 @@
 		}
 	}
 
-	$: isActive = (path: string) => $page.url.pathname === path;
+	function isActive(path: string) {
+		return page.url.pathname === path;
+	}
 </script>
 
 <svelte:head>
@@ -36,81 +44,74 @@
 				<i class="bi bi-geo-alt"></i> Brgy Map
 			</h2>
 			<p class="mb-0 small" style="color: #95a5a6;">
-				<i class="bi bi-person"></i> {data.user.username}
+				<i class="bi bi-person"></i> {user.username}
 			</p>
 		</div>
 
 		<div class="flex-grow-1 overflow-y-auto py-3">
 			<div class="nav flex-column nav-pills">
-				<a 
-					href="/dashboard" 
+				<a href="/dashboard" 
 					class="nav-link mb-2 mx-2" 
 					class:active={isActive('/dashboard')}
-					style="color: #95a5a6; transition: all 0.3s;"
-				>
+					style="color: #95a5a6; transition: all 0.3s;">
 					<i class="bi bi-speedometer2"></i> Dashboard
 				</a>
-				<a 
-					href="/dashboard/municipalities" 
+				<a href="/dashboard/municipalities" 
 					class="nav-link mb-2 mx-2" 
 					class:active={isActive('/dashboard/municipalities')}
-					style="color: #95a5a6; transition: all 0.3s;"
-				>
+					style="color: #95a5a6; transition: all 0.3s;">
 					<i class="bi bi-buildings"></i> Towns
 				</a>
-				<a 
-					href="/dashboard/people" 
-					class="nav-link mb-2 mx-2" 
-					class:active={isActive('/dashboard/people')}
-					style="color: #95a5a6; transition: all 0.3s;"
-				>
-					<i class="bi bi-people"></i> People
-				</a>
-				<a 
-					href="/dashboard/assistances" 
-					class="nav-link mb-2 mx-2" 
-					class:active={isActive('/dashboard/assistances')}
-					style="color: #95a5a6; transition: all 0.3s;"
-				>
-					<i class="bi bi-cash-coin"></i> Assistances
-				</a>
-				<a 
-					href="/dashboard/users" 
-					class="nav-link mb-2 mx-2" 
-					class:active={isActive('/dashboard/users')}
-					style="color: #95a5a6; transition: all 0.3s;"
-				>
-					<i class="bi bi-key"></i> Users
-				</a>
-				<a 
-					href="/dashboard/roles" 
-					class="nav-link mb-2 mx-2" 
-					class:active={isActive('/dashboard/roles')}
-					style="color: #95a5a6; transition: all 0.3s;"
-				>
-					<i class="bi bi-shield-check"></i> Roles
-				</a>
+				{#if capabilities.canReadPersons}
+					<a href="/dashboard/people" 
+						class="nav-link mb-2 mx-2" 
+						class:active={isActive('/dashboard/people')}
+						style="color: #95a5a6; transition: all 0.3s;">
+						<i class="bi bi-people"></i> People
+					</a>
+				{/if}
+				{#if capabilities.canReadAssistances}
+					<a href="/dashboard/assistances" 
+						class="nav-link mb-2 mx-2" 
+						class:active={isActive('/dashboard/assistances')}
+						style="color: #95a5a6; transition: all 0.3s;">
+						<i class="bi bi-cash-coin"></i> Assistances
+					</a>
+				{/if}
+				{#if capabilities.canReadUsers}
+					<a href="/dashboard/users" 
+						class="nav-link mb-2 mx-2" 
+						class:active={isActive('/dashboard/users')}
+						style="color: #95a5a6; transition: all 0.3s;">
+						<i class="bi bi-key"></i> Users
+					</a>
+				{/if}
+				{#if capabilities.canReadRoles}
+					<a href="/dashboard/roles" 
+						class="nav-link mb-2 mx-2" 
+						class:active={isActive('/dashboard/roles')}
+						style="color: #95a5a6; transition: all 0.3s;">
+						<i class="bi bi-shield-check"></i> Roles
+					</a>
+				{/if}
 			</div>
 		</div>
 
 		<div class="p-3 border-top" style="border-color: rgba(255,255,255,0.1) !important;">
-			<a
-				href="/dashboard/my-account"
+			<a href="/dashboard/my-account"
 				class="btn w-100 mb-2"
 				class:active={isActive('/dashboard/my-account')}
-				style="background-color: {isActive('/dashboard/my-account') ? '#3498db' : '#34495e'}; color: white; border: none; font-weight: 500; transition: all 0.3s;"
-			>
+				style="background-color: {isActive('/dashboard/my-account') ? '#3498db' : '#34495e'}; color: white; border: none; font-weight: 500; transition: all 0.3s;">
 				<i class="bi bi-gear"></i> My Account
 			</a>
-			<button on:click={handleLogout} class="btn w-100" style="background-color: #e74c3c; color: white; border: none; font-weight: 500; transition: all 0.3s;">
+			<button onclick={handleLogout} class="btn w-100" style="background-color: #e74c3c; color: white; border: none; font-weight: 500; transition: all 0.3s;">
 				<i class="bi bi-box-arrow-right"></i> Logout
 			</button>
 		</div>
 	</nav>
 
-	<!-- Main Content -->
 	<main class="flex-grow-1 overflow-y-auto" style="background: linear-gradient(135deg, #ecf0f1 0%, #f8f9fa 100%); scrollbar-gutter: stable;">
-		<slot />
+		{@render children?.()}
 	</main>
 </div>
 

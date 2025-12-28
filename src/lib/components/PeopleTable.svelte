@@ -6,6 +6,14 @@
 	export let onEdit: ((person: any) => void) | null = null;
 	export let onDelete: ((id: number) => void) | null = null;
 
+	export let capabilities: {
+		canUpdatePersons: boolean;
+		canDeletePersons: boolean;
+	} = {
+		canDeletePersons: true,
+		canUpdatePersons: true,
+	}
+
 	let searchQuery = '';
 	let sortColumn = 'firstName';
 	let sortDirection: 'asc' | 'desc' = 'asc';
@@ -152,6 +160,18 @@
 	} else if (people && people.length === 0) {
 		filteredData = [];
 	}
+
+	const editPerson = (person: any) => {
+		if (onEdit) {
+			onEdit(person);
+		}
+	};
+
+	const deletePerson = (id: number) => {
+		if (onDelete) {
+			onDelete(id);
+		}
+	};
 </script>
 
 <div class="card shadow-sm border-0">
@@ -166,18 +186,17 @@
 					class="form-control form-control-sm"
 					placeholder="Search people..."
 					value={searchQuery}
-					on:input={handleSearch}
+					oninput={handleSearch}
 					style="background-color: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);"
 				/>
 			</div>
 			<div class="col-md-3 text-end">
 				<div class="form-check form-check-inline">
-					<input
-						class="form-check-input"
+					<input class="form-check-input"
 						type="checkbox"
 						id="supporterFilter"
 						checked={isSupporterFilter}
-						on:change={toggleSupporterFilter}
+						onchange={toggleSupporterFilter}
 						style="cursor: pointer;"
 					/>
 					<label class="form-check-label text-white" for="supporterFilter" style="cursor: pointer;">
@@ -192,96 +211,82 @@
 		<table class="table table-hover mb-0">
 			<thead class="table-light">
 				<tr>
-					<th 
+					<th onclick={() => handleSort('firstName')}
+						onkeydown={(e) => e.key === 'Enter' && handleSort('firstName')}
 						style="cursor: pointer;"
 						class:fw-bold={sortColumn === 'firstName'}
-						on:click={() => handleSort('firstName')}
 						role="button"
-						tabindex="0"
-						on:keydown={(e) => e.key === 'Enter' && handleSort('firstName')}
-					>
+						tabindex="0">
 						Name
 						{#if sortColumn === 'firstName'}
 							<span class="float-end">{sortDirection === 'asc' ? '↑' : '↓'}</span>
 						{/if}
 					</th>
 					{#if showLocationColumns}
-						<th 
+						<th onclick={() => handleSort('town')}
+							onkeydown={(e) => e.key === 'Enter' && handleSort('town')}
 							style="cursor: pointer;"
 							class:fw-bold={sortColumn === 'town'}
-							on:click={() => handleSort('town')}
 							role="button"
-							tabindex="0"
-							on:keydown={(e) => e.key === 'Enter' && handleSort('town')}
-						>
+							tabindex="0">
 							Town
 							{#if sortColumn === 'town'}
 								<span class="float-end">{sortDirection === 'asc' ? '↑' : '↓'}</span>
 							{/if}
 						</th>
-						<th 
+						<th onclick={() => handleSort('barangay')}
+							onkeydown={(e) => e.key === 'Enter' && handleSort('barangay')}
 							style="cursor: pointer;"
 							class:fw-bold={sortColumn === 'barangay'}
-							on:click={() => handleSort('barangay')}
 							role="button"
-							tabindex="0"
-							on:keydown={(e) => e.key === 'Enter' && handleSort('barangay')}
-						>
+							tabindex="0">
 							Barangay
 							{#if sortColumn === 'barangay'}
 								<span class="float-end">{sortDirection === 'asc' ? '↑' : '↓'}</span>
 							{/if}
 						</th>
 					{/if}
-					<th 
+					<th onclick={() => handleSort('purok')}
+						onkeydown={(e) => e.key === 'Enter' && handleSort('purok')}
 						style="cursor: pointer;"
 						class:fw-bold={sortColumn === 'purok'}
-						on:click={() => handleSort('purok')}
 						role="button"
-						tabindex="0"
-						on:keydown={(e) => e.key === 'Enter' && handleSort('purok')}
-					>
+						tabindex="0">
 						Purok
 						{#if sortColumn === 'purok'}
 							<span class="float-end">{sortDirection === 'asc' ? '↑' : '↓'}</span>
 						{/if}
 					</th>
-					<th 
+					<th onclick={() => handleSort('isSupporter')}
+						onkeydown={(e) => e.key === 'Enter' && handleSort('isSupporter')}
 						style="cursor: pointer;"
 						class:fw-bold={sortColumn === 'isSupporter'}
-						on:click={() => handleSort('isSupporter')}
 						role="button"
-						tabindex="0"
-						on:keydown={(e) => e.key === 'Enter' && handleSort('isSupporter')}
-					>
+						tabindex="0">
 						Is Supporter
 						{#if sortColumn === 'isSupporter'}
 							<span class="float-end">{sortDirection === 'asc' ? '↑' : '↓'}</span>
 						{/if}
 					</th>
-					<th 
+					<th onclick={() => handleSort('financialTotal')}
+						onkeydown={(e) => e.key === 'Enter' && handleSort('financialTotal')}
 						style="cursor: pointer;"
 						class:fw-bold={sortColumn === 'financialTotal'}
-						on:click={() => handleSort('financialTotal')}
 						role="button"
 						tabindex="0"
-						on:keydown={(e) => e.key === 'Enter' && handleSort('financialTotal')}
-						class="text-end"
-					>
+						class="text-end">
 						Financial Aid (total)
 						{#if sortColumn === 'financialTotal'}
 							<span class="float-end">{sortDirection === 'asc' ? '↑' : '↓'}</span>
 						{/if}
 					</th>
-					<th 
+					<th onclick={() => handleSort('medicineCount')}
+						onkeydown={(e) => e.key === 'Enter' && handleSort('medicineCount')}
 						style="cursor: pointer;"
 						class:fw-bold={sortColumn === 'medicineCount'}
-						on:click={() => handleSort('medicineCount')}
 						role="button"
 						tabindex="0"
-						on:keydown={(e) => e.key === 'Enter' && handleSort('medicineCount')}
-						class="text-center"
-					>
+						class="text-center">
 						Medicine Aid (count)
 						{#if sortColumn === 'medicineCount'}
 							<span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
@@ -310,12 +315,10 @@
 						</td>
 						<td class="text-end">
 							{#if getFinancialTotal(person.id) > 0}
-								<button 
+								<button onclick={() => openAidHistory(person, 'financial')}
 									class="badge bg-success" 
 									style="border: none; cursor: pointer; padding: 0.5em 0.75em;"
-									on:click={() => openAidHistory(person, 'financial')}
-									title="Click to view history"
-								>
+									title="Click to view history">
 									{formatCurrency(getFinancialTotal(person.id))}
 								</button>
 							{:else}
@@ -324,12 +327,10 @@
 						</td>
 						<td class="text-center">
 							{#if getMedicineCount(person.id) > 0}
-								<button 
+								<button onclick={() => openAidHistory(person, 'medicine')}
 									class="badge bg-info" 
 									style="border: none; cursor: pointer; padding: 0.5em 0.75em;"
-									on:click={() => openAidHistory(person, 'medicine')}
-									title="Click to view history"
-								>
+									title="Click to view history">
 									{getMedicineCount(person.id)}
 								</button>
 							{:else}
@@ -337,21 +338,17 @@
 							{/if}
 						</td>
 						<td class="text-center">
-							{#if onEdit}
-								<button 
+							{#if capabilities.canUpdatePersons}
+								<button onclick={() => editPerson(person)}
 									class="btn btn-sm btn-warning me-1"
-									on:click={() => onEdit(person)}
-									title="Edit person"
-								>
+									title="Edit person">
 									✏️
 								</button>
 							{/if}
-							{#if onDelete}
-								<button 
+							{#if capabilities.canDeletePersons}
+								<button onclick={() => deletePerson(person.id)}
 									class="btn btn-sm btn-danger"
-									on:click={() => onDelete(person.id)}
-									title="Delete person"
-								>
+									title="Delete person">
 									🗑️
 								</button>
 							{/if}
@@ -369,20 +366,16 @@
 		<nav aria-label="Table pagination">
 			<ul class="pagination mb-0">
 				<li class="page-item" class:disabled={currentPage === 1}>
-					<button
+					<button onclick={() => (currentPage = 1)}
 						class="page-link"
-						on:click={() => (currentPage = 1)}
-						disabled={currentPage === 1}
-					>
+						disabled={currentPage === 1}>
 						First
 					</button>
 				</li>
 				<li class="page-item" class:disabled={currentPage === 1}>
-					<button
+					<button onclick={() => (currentPage = Math.max(1, currentPage - 1))}
 						class="page-link"
-						on:click={() => (currentPage = Math.max(1, currentPage - 1))}
-						disabled={currentPage === 1}
-					>
+						disabled={currentPage === 1}>
 						Prev
 					</button>
 				</li>
@@ -392,20 +385,16 @@
 					</span>
 				</li>
 				<li class="page-item" class:disabled={currentPage === totalPages || totalPages === 0}>
-					<button
+					<button onclick={() => (currentPage = Math.min(totalPages, currentPage + 1))}
 						class="page-link"
-						on:click={() => (currentPage = Math.min(totalPages, currentPage + 1))}
-						disabled={currentPage === totalPages || totalPages === 0}
-					>
+						disabled={currentPage === totalPages || totalPages === 0}>
 						Next
 					</button>
 				</li>
 				<li class="page-item" class:disabled={currentPage === totalPages || totalPages === 0}>
-					<button
+					<button onclick={() => (currentPage = totalPages)}
 						class="page-link"
-						on:click={() => (currentPage = totalPages)}
-						disabled={currentPage === totalPages || totalPages === 0}
-					>
+						disabled={currentPage === totalPages || totalPages === 0}>
 						Last
 					</button>
 				</li>
@@ -427,7 +416,7 @@
 							💊 Medicine Aid History - {selectedPerson.firstName} {selectedPerson.lastName}
 						{/if}
 					</h5>
-					<button type="button" class="btn-close btn-close-white" on:click={closeAidModal}></button>
+					<button type="button" class="btn-close btn-close-white" aria-label="Close modal" onclick={closeAidModal}></button>
 				</div>
 				<div class="modal-body">
 					{#if selectedAidType === 'financial'}
@@ -507,7 +496,11 @@
 					{/if}
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" on:click={closeAidModal}>Close</button>
+					<button onclick={closeAidModal}
+						type="button"
+						class="btn btn-secondary">
+						Close
+					</button>
 				</div>
 			</div>
 		</div>

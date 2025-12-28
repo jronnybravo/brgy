@@ -1,55 +1,62 @@
 <script lang="ts">
 	import { FinancialAssistanceType } from '$lib/database/entities/Assistance';
 	import { onMount } from 'svelte';
+	import type { PageData } from './$types';
 
-	let financialAssistances: any[] = [];
-	let medicineAssistances: any[] = [];
-	let people: any[] = [];
-	let localities: any[] = [];
-	let loading = true;
-	let error = '';
-	let toast: { message: string; type: 'success' | 'error' | 'info' } | null = null;
-	let showFinancialModal = false;
-	let showMedicineModal = false;
-	let editingId: number | null = null;
-	let editingType: 'financial' | 'medicine' | null = null;
-	let activeTab: 'financial' | 'medicine' | 'map' = 'financial';
+	let { data }: { data: PageData } = $props();
+	const capabilities = $derived(data.capabilities as {
+		canCreateAssistances: boolean;
+		canUpdateAssistances: boolean;
+		canDeleteAssistances: boolean;
+	});
+
+	let financialAssistances: any[] = $state([]);
+	let medicineAssistances: any[] = $state([]);
+	let people: any[] = $state([]);
+	let localities: any[] = $state([]);
+	let loading = $state(true);
+	let error = $state('');
+	let toast: { message: string; type: 'success' | 'error' | 'info' } | null = $state(null);
+	let showFinancialModal = $state(false);
+	let showMedicineModal = $state(false);
+	let editingId: number | null = $state(null);
+	let editingType: 'financial' | 'medicine' | null = $state(null);
+	let activeTab: 'financial' | 'medicine' | 'map' = $state('financial');
 
 	// Modal state for location selection
-	let selectedMunicipality = '';
-	let selectedBarangay = '';
-	let filteredPeopleByLocation: any[] = [];
-	let barangaysForMunicipality: any[] = [];
+	let selectedMunicipality = $state('');
+	let selectedBarangay = $state('');
+	let filteredPeopleByLocation: any[] = $state([]);
+	let barangaysForMunicipality: any[] = $state([]);
 
 	// Financial table state
-	let financialTableData: any[] = [];
-	let financialFilteredTableData: any[] = [];
-	let financialSearchQuery = '';
-	let financialTypeFilter = '';
-	let financialSortColumn = 'date_disbursed';
-	let financialSortDirection: 'asc' | 'desc' = 'desc';
-	let financialCurrentPage = 1;
-
+	let financialTableData: any[] = $state([]);
+	let financialFilteredTableData: any[] = $state([]);
+	let financialSearchQuery = $state('');
+	let financialTypeFilter = $state('');
+	let financialSortColumn = $state('date_disbursed');
+	let financialSortDirection: 'asc' | 'desc' = $state('desc');
+	let financialCurrentPage = $state(1);
 	// Medicine table state
-	let medicineTableData: any[] = [];
-	let medicineFilteredTableData: any[] = [];
-	let medicineSearchQuery = '';
-	let medicineSortColumn = 'date_disbursed';
-	let medicineSortDirection: 'asc' | 'desc' = 'desc';
-	let medicineCurrentPage = 1;
+	let medicineTableData: any[] = $state([]);
+	let medicineFilteredTableData: any[] = $state([]);
+	let medicineSearchQuery = $state('');
+	let medicineSortColumn = $state('date_disbursed');
+	let medicineSortDirection: 'asc' | 'desc' = $state('desc');
+	let medicineCurrentPage = $state(1);
 
 	const pageSize = 10;
 
 	// Initialize and manage table data
-	$: {
+	$effect(() => {
 		financialTableData = financialAssistances;
 		applyFinancialFiltersAndSort();
-	}
+	});
 
-	$: {
+	$effect(() => {
 		medicineTableData = medicineAssistances;
 		applyMedicineFiltersAndSort();
-	}
+	});
 
 	function applyFinancialFiltersAndSort() {
 		let filtered = financialTableData;
@@ -153,26 +160,26 @@
 		applyMedicineFiltersAndSort();
 	}
 
-	$: paginatedFinancialAssistances = financialFilteredTableData.slice(
+	const paginatedFinancialAssistances = $derived(financialFilteredTableData.slice(
 		(financialCurrentPage - 1) * pageSize,
 		financialCurrentPage * pageSize
-	);
-	$: financialTotalPages = Math.ceil(financialFilteredTableData.length / pageSize);
+	));
+	const financialTotalPages = $derived(Math.ceil(financialFilteredTableData.length / pageSize));
 
-	$: paginatedMedicineAssistances = medicineFilteredTableData.slice(
+	const paginatedMedicineAssistances = $derived(medicineFilteredTableData.slice(
 		(medicineCurrentPage - 1) * pageSize,
 		medicineCurrentPage * pageSize
-	);
-	$: medicineTotalPages = Math.ceil(medicineFilteredTableData.length / pageSize);
+	));
+	const medicineTotalPages = $derived(Math.ceil(medicineFilteredTableData.length / pageSize));
 
-	let financialFormData = {
+	let financialFormData = $state({
 		personId: '',
 		type: 'AICS',
 		date_disbursed: '',
 		amount: ''
-	};
+	});
 
-	let medicineFormData = {
+	let medicineFormData = $state({
 		personId: '',
 		medicine_name: '',
 		generic_name: '',
@@ -180,7 +187,7 @@
 		quantity: '',
 		unit: '',
 		date_disbursed: ''
-	};
+	});
 
 	async function loadAssistances() {
 		try {
@@ -462,7 +469,11 @@
 	{#if toast}
 		<div class="alert alert-{toast.type === 'success' ? 'success' : toast.type === 'error' ? 'danger' : 'info'} alert-dismissible fade show" role="alert" style="position: sticky; top: 1rem; z-index: 1050;">
 			<strong>{toast.type === 'success' ? '✓' : toast.type === 'error' ? '✕' : 'ℹ'}</strong> {toast.message}
-			<button type="button" class="btn-close" on:click={() => toast = null}></button>
+			<button onclick={() => toast = null}
+				type="button"
+				class="btn-close"
+				aria-label="Close">
+			</button>
 		</div>
 	{/if}
 
@@ -477,30 +488,26 @@
 		<div class="card-header" style="background-color: #f8f9fa;">
 			<ul class="nav nav-tabs card-header-tabs" role="tablist">
 				<li class="nav-item" role="presentation">
-					<button
+					<button onclick={() => activeTab = 'financial'}
 						class="nav-link"
 						class:active={activeTab === 'financial'}
 						id="financial-tab"
-						on:click={() => activeTab = 'financial'}
 						type="button"
 						role="tab"
 						aria-controls="financial-content"
-						aria-selected={activeTab === 'financial'}
-					>
+						aria-selected={activeTab === 'financial'}>
 						💰 Financial Assistances
 					</button>
 				</li>
 				<li class="nav-item" role="presentation">
-					<button
+					<button onclick={() => activeTab = 'medicine'}
 						class="nav-link"
 						class:active={activeTab === 'medicine'}
 						id="medicine-tab"
-						on:click={() => activeTab = 'medicine'}
 						type="button"
 						role="tab"
 						aria-controls="medicine-content"
-						aria-selected={activeTab === 'medicine'}
-					>
+						aria-selected={activeTab === 'medicine'}>
 						💊 Medicine Assistances
 					</button>
 				</li>
@@ -510,30 +517,29 @@
 			<!-- Financial Assistances Tab -->
 			{#if activeTab === 'financial'}
 				<div role="tabpanel" id="financial-content">
-					<div class="mb-3">
-						<button on:click={() => (showFinancialModal = true)} class="btn btn-primary">
-							+ Add Financial Assistance
-						</button>
-					</div>
+					{#if capabilities.canCreateAssistances}
+						<div class="mb-3">
+							<button onclick={() => (showFinancialModal = true)}
+								class="btn btn-primary">
+								+ Add Financial Assistance
+							</button>
+						</div>
+					{/if}
 
 					<div class="row align-items-center mb-3">
 						<div class="col-md-8">
-							<input
+							<input oninput={handleFinancialSearch}
 								type="text"
 								placeholder="Search financial assistances..."
 								value={financialSearchQuery}
-								on:input={handleFinancialSearch}
 								class="form-control form-control-sm"
-								style="background-color: #f0f0f0;"
-							/>
+								style="background-color: #f0f0f0;" />
 						</div>
 						<div class="col-md-4">
-							<select 
+							<select bind:value={financialTypeFilter}
+								onchange={() => applyFinancialFiltersAndSort()}
 								class="form-select form-select-sm" 
-								bind:value={financialTypeFilter}
-								on:change={() => applyFinancialFiltersAndSort()}
-								style="background-color: #f0f0f0;"
-							>
+								style="background-color: #f0f0f0;">
 								<option value="">-- All Types --</option>
 								{#each Object.values(FinancialAssistanceType) as type}
 									<option value={type}>{type}</option>
@@ -561,53 +567,45 @@
 							<table class="table table-hover table-striped">
 								<thead class="table-light">
 									<tr>
-										<th 
+										<th onclick={() => handleFinancialSort('person')}
+											onkeydown={(e) => e.key === 'Enter' && handleFinancialSort('person')}
 											style="cursor: pointer;"
 											class:fw-bold={financialSortColumn === 'person'}
-											on:click={() => handleFinancialSort('person')}
 											role="button"
-											tabindex="0"
-											on:keydown={(e) => e.key === 'Enter' && handleFinancialSort('person')}
-										>
+											tabindex="0">
 											Person
 											{#if financialSortColumn === 'person'}
 												<span class="float-end">{financialSortDirection === 'asc' ? '↑' : '↓'}</span>
 											{/if}
 										</th>
-										<th 
+										<th onclick={() => handleFinancialSort('type')}
+											onkeydown={(e) => e.key === 'Enter' && handleFinancialSort('type')}
 											style="cursor: pointer;"
 											class:fw-bold={financialSortColumn === 'type'}
-											on:click={() => handleFinancialSort('type')}
 											role="button"
-											tabindex="0"
-											on:keydown={(e) => e.key === 'Enter' && handleFinancialSort('type')}
-										>
+											tabindex="0">
 											Type
 											{#if financialSortColumn === 'type'}
 												<span>{financialSortDirection === 'asc' ? '↑' : '↓'}</span>
 											{/if}
 										</th>
-										<th 
+										<th onclick={() => handleFinancialSort('date_disbursed')}
+											onkeydown={(e) => e.key === 'Enter' && handleFinancialSort('date_disbursed')}
 											style="cursor: pointer;"
 											class:fw-bold={financialSortColumn === 'date_disbursed'}
-											on:click={() => handleFinancialSort('date_disbursed')}
 											role="button"
-											tabindex="0"
-											on:keydown={(e) => e.key === 'Enter' && handleFinancialSort('date_disbursed')}
-										>
+											tabindex="0">
 											Date Disbursed
 											{#if financialSortColumn === 'date_disbursed'}
 												<span>{financialSortDirection === 'asc' ? '↑' : '↓'}</span>
 											{/if}
 										</th>
-										<th 
+										<th onclick={() => handleFinancialSort('value')}
+											onkeydown={(e) => e.key === 'Enter' && handleFinancialSort('value')}
 											style="cursor: pointer;"
 											class:fw-bold={financialSortColumn === 'value'}
-											on:click={() => handleFinancialSort('value')}
 											role="button"
-											tabindex="0"
-											on:keydown={(e) => e.key === 'Enter' && handleFinancialSort('value')}
-										>
+											tabindex="0">
 											Amount
 											{#if financialSortColumn === 'value'}
 												<span>{financialSortDirection === 'asc' ? '↑' : '↓'}</span>
@@ -628,12 +626,18 @@
 											<td>{new Date(assistance.date_disbursed).toLocaleDateString('en-US')}</td>
 											<td class="fw-bold">₱{parseFloat(assistance.value).toFixed(2)}</td>
 											<td class="text-center">
-												<button on:click={() => editFinancialAssistance(assistance)} class="btn btn-sm btn-outline-primary me-1">
-													✎ Edit
-												</button>
-												<button on:click={() => deleteAssistance(assistance.id)} class="btn btn-sm btn-outline-danger">
-													🗑 Delete
-												</button>
+												{#if capabilities.canUpdateAssistances}
+													<button onclick={() => editFinancialAssistance(assistance)}
+														class="btn btn-sm btn-outline-primary me-1">
+														✎ Edit
+													</button>
+												{/if}
+												{#if capabilities.canDeleteAssistances}
+													<button onclick={() => deleteAssistance(assistance.id)}
+														class="btn btn-sm btn-outline-danger">
+														🗑 Delete
+													</button>
+												{/if}
 											</td>
 										</tr>
 									{/each}
@@ -647,20 +651,16 @@
 							<nav aria-label="Table pagination">
 								<ul class="pagination mb-0">
 									<li class="page-item" class:disabled={financialCurrentPage === 1}>
-										<button
+										<button onclick={() => financialCurrentPage = 1}
 											class="page-link"
-											on:click={() => financialCurrentPage = 1}
-											disabled={financialCurrentPage === 1}
-										>
+											disabled={financialCurrentPage === 1}>
 											First
 										</button>
 									</li>
 									<li class="page-item" class:disabled={financialCurrentPage === 1}>
-										<button
+										<button onclick={() => financialCurrentPage = Math.max(1, financialCurrentPage - 1)}
 											class="page-link"
-											on:click={() => financialCurrentPage = Math.max(1, financialCurrentPage - 1)}
-											disabled={financialCurrentPage === 1}
-										>
+											disabled={financialCurrentPage === 1}>
 											Prev
 										</button>
 									</li>
@@ -670,20 +670,16 @@
 										</span>
 									</li>
 									<li class="page-item" class:disabled={financialCurrentPage === financialTotalPages || financialTotalPages === 0}>
-										<button
+										<button onclick={() => financialCurrentPage = Math.min(financialTotalPages, financialCurrentPage + 1)}
 											class="page-link"
-											on:click={() => financialCurrentPage = Math.min(financialTotalPages, financialCurrentPage + 1)}
-											disabled={financialCurrentPage === financialTotalPages || financialTotalPages === 0}
-										>
+											disabled={financialCurrentPage === financialTotalPages || financialTotalPages === 0}>
 											Next
 										</button>
 									</li>
 									<li class="page-item" class:disabled={financialCurrentPage === financialTotalPages || financialTotalPages === 0}>
-										<button
+										<button onclick={() => financialCurrentPage = financialTotalPages}
 											class="page-link"
-											on:click={() => financialCurrentPage = financialTotalPages}
-											disabled={financialCurrentPage === financialTotalPages || financialTotalPages === 0}
-										>
+											disabled={financialCurrentPage === financialTotalPages || financialTotalPages === 0}>
 											Last
 										</button>
 									</li>
@@ -696,22 +692,23 @@
 			<!-- Medicine Assistances Tab -->
 			{:else if activeTab === 'medicine'}
 				<div role="tabpanel" id="medicine-content">
-					<div class="mb-3">
-						<button on:click={() => (showMedicineModal = true)} class="btn btn-primary">
-							+ Add Medicine Assistance
-						</button>
-					</div>
+					{#if capabilities.canCreateAssistances}
+						<div class="mb-3">
+							<button onclick={() => (showMedicineModal = true)}
+								class="btn btn-primary">
+								+ Add Medicine Assistance
+							</button>
+						</div>
+					{/if}
 
 					<div class="row align-items-center mb-3">
 						<div class="col-md-12">
-							<input
+							<input oninput={handleMedicineSearch}
 								type="text"
 								placeholder="Search medicine assistances..."
 								value={medicineSearchQuery}
-								on:input={handleMedicineSearch}
 								class="form-control form-control-sm"
-								style="background-color: #f0f0f0;"
-							/>
+								style="background-color: #f0f0f0;" />
 						</div>
 					</div>
 
@@ -734,53 +731,45 @@
 							<table class="table table-hover table-striped">
 								<thead class="table-light">
 									<tr>
-										<th 
+										<th onclick={() => handleMedicineSort('person')}
+											onkeydown={(e) => e.key === 'Enter' && handleMedicineSort('person')}
 											style="cursor: pointer;"
 											class:fw-bold={medicineSortColumn === 'person'}
-											on:click={() => handleMedicineSort('person')}
 											role="button"
-											tabindex="0"
-											on:keydown={(e) => e.key === 'Enter' && handleMedicineSort('person')}
-										>
+											tabindex="0">
 											Person
 											{#if medicineSortColumn === 'person'}
 												<span class="float-end">{medicineSortDirection === 'asc' ? '↑' : '↓'}</span>
 											{/if}
 										</th>
-										<th 
+										<th onclick={() => handleMedicineSort('medicine_name')}
+											onkeydown={(e) => e.key === 'Enter' && handleMedicineSort('medicine_name')}
 											style="cursor: pointer;"
 											class:fw-bold={medicineSortColumn === 'medicine_name'}
-											on:click={() => handleMedicineSort('medicine_name')}
 											role="button"
-											tabindex="0"
-											on:keydown={(e) => e.key === 'Enter' && handleMedicineSort('medicine_name')}
-										>
+											tabindex="0">
 											Medicine
 											{#if medicineSortColumn === 'medicine_name'}
 												<span>{medicineSortDirection === 'asc' ? '↑' : '↓'}</span>
 											{/if}
 										</th>
-										<th 
+										<th onclick={() => handleMedicineSort('date_disbursed')}
+											onkeydown={(e) => e.key === 'Enter' && handleMedicineSort('date_disbursed')}
 											style="cursor: pointer;"
 											class:fw-bold={medicineSortColumn === 'date_disbursed'}
-											on:click={() => handleMedicineSort('date_disbursed')}
 											role="button"
-											tabindex="0"
-											on:keydown={(e) => e.key === 'Enter' && handleMedicineSort('date_disbursed')}
-										>
+											tabindex="0">
 											Date Disbursed
 											{#if medicineSortColumn === 'date_disbursed'}
 												<span>{medicineSortDirection === 'asc' ? '↑' : '↓'}</span>
 											{/if}
 										</th>
-										<th 
+										<th onclick={() => handleMedicineSort('quantity')}
+											onkeydown={(e) => e.key === 'Enter' && handleMedicineSort('quantity')}
 											style="cursor: pointer;"
 											class:fw-bold={medicineSortColumn === 'quantity'}
-											on:click={() => handleMedicineSort('quantity')}
 											role="button"
-											tabindex="0"
-											on:keydown={(e) => e.key === 'Enter' && handleMedicineSort('quantity')}
-										>
+											tabindex="0">
 											Quantity
 											{#if medicineSortColumn === 'quantity'}
 												<span>{medicineSortDirection === 'asc' ? '↑' : '↓'}</span>
@@ -799,12 +788,18 @@
 											<td class="fw-bold">{assistance.quantity}</td>
 											<td>{assistance.unit}</td>
 											<td class="text-center">
-												<button on:click={() => editMedicineAssistance(assistance)} class="btn btn-sm btn-outline-primary me-1">
-													✎ Edit
-												</button>
-												<button on:click={() => deleteAssistance(assistance.id)} class="btn btn-sm btn-outline-danger">
-													🗑 Delete
-												</button>
+												{#if capabilities.canUpdateAssistances}
+													<button onclick={() => editMedicineAssistance(assistance)}
+														class="btn btn-sm btn-outline-primary me-1">
+														✎ Edit
+													</button>
+												{/if}
+												{#if capabilities.canDeleteAssistances}
+													<button onclick={() => deleteAssistance(assistance.id)}
+														class="btn btn-sm btn-outline-danger">
+														🗑 Delete
+													</button>
+												{/if}
 											</td>
 										</tr>
 									{/each}
@@ -818,20 +813,16 @@
 							<nav aria-label="Table pagination">
 								<ul class="pagination mb-0">
 									<li class="page-item" class:disabled={medicineCurrentPage === 1}>
-										<button
+										<button onclick={() => medicineCurrentPage = 1}
 											class="page-link"
-											on:click={() => medicineCurrentPage = 1}
-											disabled={medicineCurrentPage === 1}
-										>
+											disabled={medicineCurrentPage === 1}>
 											First
 										</button>
 									</li>
 									<li class="page-item" class:disabled={medicineCurrentPage === 1}>
-										<button
+										<button onclick={() => medicineCurrentPage = Math.max(1, medicineCurrentPage - 1)}
 											class="page-link"
-											on:click={() => medicineCurrentPage = Math.max(1, medicineCurrentPage - 1)}
-											disabled={medicineCurrentPage === 1}
-										>
+											disabled={medicineCurrentPage === 1}>
 											Prev
 										</button>
 									</li>
@@ -841,20 +832,16 @@
 										</span>
 									</li>
 									<li class="page-item" class:disabled={medicineCurrentPage === medicineTotalPages || medicineTotalPages === 0}>
-										<button
+										<button onclick={() => medicineCurrentPage = Math.min(medicineTotalPages, medicineCurrentPage + 1)}
 											class="page-link"
-											on:click={() => medicineCurrentPage = Math.min(medicineTotalPages, medicineCurrentPage + 1)}
-											disabled={medicineCurrentPage === medicineTotalPages || medicineTotalPages === 0}
-										>
+											disabled={medicineCurrentPage === medicineTotalPages || medicineTotalPages === 0}>
 											Next
 										</button>
 									</li>
 									<li class="page-item" class:disabled={medicineCurrentPage === medicineTotalPages || medicineTotalPages === 0}>
-										<button
+										<button onclick={() => medicineCurrentPage = medicineTotalPages}
 											class="page-link"
-											on:click={() => medicineCurrentPage = medicineTotalPages}
-											disabled={medicineCurrentPage === medicineTotalPages || medicineTotalPages === 0}
-										>
+											disabled={medicineCurrentPage === medicineTotalPages || medicineTotalPages === 0}>
 											Last
 										</button>
 									</li>
@@ -877,41 +864,63 @@
 					<h5 class="modal-title fw-bold" style="color: #2c3e50;">
 						{editingType === 'financial' && editingId ? 'Edit Financial Assistance' : 'Add New Financial Assistance'}
 					</h5>
-					<button type="button" class="btn-close" on:click={resetFinancialForm}></button>
+					<button onclick={resetFinancialForm}
+						type="button"
+						class="btn-close"
+						aria-label="Close">
+					</button>
 				</div>
 				<div class="modal-body">
-					<form on:submit={saveFinancialAssistance}>
-					<div class="row mb-3">
-						<div class="col-md-6">
-							<label for="fin-municipality" class="form-label fw-500">Municipality *</label>
-							<select id="fin-municipality" class="form-select form-select-lg" value={selectedMunicipality} on:change={handleMunicipalityChange} required>
-								<option value="">-- Select Municipality --</option>
-								{#each localities.filter(l => l.type === 'municipality') as municipality}
-									<option value={String(municipality.id)}>{municipality.name}</option>
+					<form onsubmit={saveFinancialAssistance}>
+						<div class="row mb-3">
+							<div class="col-md-6">
+								<label for="fin-municipality" class="form-label fw-500">Municipality *</label>
+								<select onchange={handleMunicipalityChange}
+									id="fin-municipality"
+									class="form-select form-select-lg"
+									value={selectedMunicipality}
+									required>
+									<option value="">-- Select Municipality --</option>
+									{#each localities.filter(l => l.type === 'municipality') as municipality}
+										<option value={String(municipality.id)}>{municipality.name}</option>
+									{/each}
+								</select>
+							</div>
+							<div class="col-md-6">
+								<label for="fin-barangay" class="form-label fw-500">Barangay *</label>
+								<select onchange={handleBarangayChange}
+									id="fin-barangay"
+									class="form-select form-select-lg"
+									value={selectedBarangay}
+									required
+									disabled={!selectedMunicipality}>
+									<option value="">-- Select Barangay --</option>
+									{#each barangaysForMunicipality as barangay}
+										<option value={String(barangay.id)}>{barangay.name}</option>
+									{/each}
+								</select>
+							</div>
+						</div>
+						<div class="mb-3">
+							<label for="fin-personId" class="form-label fw-500">Person *</label>
+							<select bind:value={financialFormData.personId}
+								id="fin-personId"
+								class="form-select form-select-lg"
+								required
+								disabled={!selectedBarangay}>
+								<option value="">-- Select Person --</option>
+								{#each filteredPeopleByLocation as person}
+									<option value={String(person.id)}>{person.lastName}, {person.firstName}</option>
 								{/each}
 							</select>
 						</div>
-						<div class="col-md-6">
-							<label for="fin-barangay" class="form-label fw-500">Barangay *</label>
-							<select id="fin-barangay" class="form-select form-select-lg" value={selectedBarangay} on:change={handleBarangayChange} required disabled={!selectedMunicipality}>
-								<option value="">-- Select Barangay --</option>
-								{#each barangaysForMunicipality as barangay}
-									<option value={String(barangay.id)}>{barangay.name}</option>
-								{/each}
-							</select>
-						</div>
-					</div>						<div class="mb-3">
-						<label for="fin-personId" class="form-label fw-500">Person *</label>
-						<select id="fin-personId" class="form-select form-select-lg" bind:value={financialFormData.personId} required disabled={!selectedBarangay}>
-							<option value="">-- Select Person --</option>
-							{#each filteredPeopleByLocation as person}
-								<option value={String(person.id)}>{person.lastName}, {person.firstName}</option>
-							{/each}
-						</select>
-					</div>						<div class="row mb-4">
+						<div class="row mb-4">
 							<div class="col-md-4">
 								<label for="fin-type" class="form-label fw-500">Assistance Type *</label>
-								<select id="fin-type" class="form-select form-select-lg" bind:value={financialFormData.type} required>
+								<select bind:value={financialFormData.type}
+									id="fin-type"
+									class="form-select form-select-lg"
+									required>
 									{#each Object.values(FinancialAssistanceType) as type}
 										<option value={type}>{type}</option>
 									{/each}
@@ -919,34 +928,29 @@
 							</div>
 							<div class="col-md-4">
 								<label for="fin-date" class="form-label fw-500">Date Disbursed *</label>
-								<input 
+								<input bind:value={financialFormData.date_disbursed}
 									type="date" 
 									id="fin-date" 
 									class="form-control form-control-lg"
-									bind:value={financialFormData.date_disbursed}
-									required
-								/>
+									required />
 							</div>
 							<div class="col-md-4">
 								<label for="fin-amount" class="form-label fw-500">Amount *</label>
-								<input
+								<input bind:value={financialFormData.amount}
 									type="number"
 									id="fin-amount"
 									class="form-control form-control-lg"
-									bind:value={financialFormData.amount}
 									step="0.01"
 									min="0"
 									placeholder="0.00"
-									required
-								/>
+									required />
 							</div>
 						</div>
-
 						<div class="d-flex gap-2">
 							<button type="submit" class="btn btn-success">
 								{editingType === 'financial' && editingId ? '💾 Update' : '💾 Create'}
 							</button>
-							<button type="button" on:click={resetFinancialForm} class="btn btn-outline-secondary">Cancel</button>
+							<button onclick={resetFinancialForm} type="button" class="btn btn-outline-secondary">Cancel</button>
 						</div>
 					</form>
 				</div>
@@ -964,109 +968,115 @@
 					<h5 class="modal-title fw-bold" style="color: #2c3e50;">
 						{editingType === 'medicine' && editingId ? 'Edit Medicine Assistance' : 'Add New Medicine Assistance'}
 					</h5>
-					<button type="button" class="btn-close" on:click={resetMedicineForm}></button>
+					<button onclick={resetMedicineForm}
+						type="button"
+						class="btn-close"
+						aria-label="Close">
+					</button>
 				</div>
 				<div class="modal-body">
-					<form on:submit={saveMedicineAssistance}>
-					<div class="row mb-3">
-						<div class="col-md-6">
-							<label for="med-municipality" class="form-label fw-500">Municipality *</label>
-							<select id="med-municipality" class="form-select form-select-lg" value={selectedMunicipality} on:change={handleMunicipalityChange} required>
-								<option value="">-- Select Municipality --</option>
-								{#each localities.filter(l => l.type === 'municipality') as municipality}
-									<option value={String(municipality.id)}>{municipality.name}</option>
-								{/each}
-							</select>
+					<form onsubmit={saveMedicineAssistance}>
+						<div class="row mb-3">
+							<div class="col-md-6">
+								<label for="med-municipality" class="form-label fw-500">Municipality *</label>
+								<select onchange={handleMunicipalityChange} 
+									id="med-municipality"
+									class="form-select form-select-lg"
+									value={selectedMunicipality}
+									required>
+									<option value="">-- Select Municipality --</option>
+									{#each localities.filter(l => l.type === 'municipality') as municipality}
+										<option value={String(municipality.id)}>{municipality.name}</option>
+									{/each}
+								</select>
+							</div>
+							<div class="col-md-6">
+								<label for="med-barangay" class="form-label fw-500">Barangay *</label>
+								<select onchange={handleBarangayChange}
+									id="med-barangay"
+									class="form-select form-select-lg"
+									value={selectedBarangay}
+									required
+									disabled={!selectedMunicipality}>
+									<option value="">-- Select Barangay --</option>
+									{#each barangaysForMunicipality as barangay}
+										<option value={String(barangay.id)}>{barangay.name}</option>
+									{/each}
+								</select>
+							</div>
 						</div>
-						<div class="col-md-6">
-							<label for="med-barangay" class="form-label fw-500">Barangay *</label>
-							<select id="med-barangay" class="form-select form-select-lg" value={selectedBarangay} on:change={handleBarangayChange} required disabled={!selectedMunicipality}>
-								<option value="">-- Select Barangay --</option>
-								{#each barangaysForMunicipality as barangay}
-									<option value={String(barangay.id)}>{barangay.name}</option>
-								{/each}
-							</select>
-						</div>
-					</div>						<div class="mb-3">
+						<div class="mb-3">
 							<label for="med-personId" class="form-label fw-500">Person *</label>
-							<select id="med-personId" class="form-select form-select-lg" bind:value={medicineFormData.personId} required disabled={!selectedBarangay}>
+							<select bind:value={medicineFormData.personId} 
+								id="med-personId"
+								class="form-select form-select-lg"
+								required
+								disabled={!selectedBarangay}>
 								<option value="">-- Select Person --</option>
 								{#each filteredPeopleByLocation as person}
 									<option value={String(person.id)}>{person.lastName}, {person.firstName}</option>
 								{/each}
 							</select>
 						</div>
-
 						<div class="mb-3">
 							<label for="med-medicineName" class="form-label fw-500">Medicine Name *</label>
-							<input 
+							<input bind:value={medicineFormData.medicine_name}
 								type="text" 
 								id="med-medicineName" 
 								class="form-control form-control-lg"
-								bind:value={medicineFormData.medicine_name}
-								required
-							/>
+								required />
 						</div>
-
 						<div class="row mb-3">
 							<div class="col-md-6">
 								<label for="med-genericName" class="form-label fw-500">Generic Name</label>
-								<input 
+								<input bind:value={medicineFormData.generic_name}
 									type="text" 
 									id="med-genericName" 
-									class="form-control form-control-lg"
-									bind:value={medicineFormData.generic_name}
-								/>
+									class="form-control form-control-lg" />
 							</div>
 							<div class="col-md-6">
 								<label for="med-dosage" class="form-label fw-500">Dosage</label>
-								<input 
+								<input bind:value={medicineFormData.dosage}
 									type="text" 
 									id="med-dosage" 
-									class="form-control form-control-lg"
-									bind:value={medicineFormData.dosage}
-								/>
+									class="form-control form-control-lg" />
 							</div>
 						</div>
-
 						<div class="row mb-4">
 							<div class="col-md-4">
 								<label for="med-quantity" class="form-label fw-500">Quantity *</label>
-								<input
+								<input bind:value={medicineFormData.quantity}
 									type="number"
 									id="med-quantity"
 									class="form-control form-control-lg"
-									bind:value={medicineFormData.quantity}
 									min="1"
-									required
-								/>
+									required />
 							</div>
 							<div class="col-md-4">
 								<label for="med-unit" class="form-label fw-500">Unit</label>
-								<input 
+								<input bind:value={medicineFormData.unit}
 									type="text" 
 									id="med-unit" 
-									class="form-control form-control-lg"
-									bind:value={medicineFormData.unit}
-								/>
+									class="form-control form-control-lg" />
 							</div>
 							<div class="col-md-4">
 								<label for="med-date" class="form-label fw-500">Date Disbursed *</label>
-								<input 
+								<input bind:value={medicineFormData.date_disbursed}
 									type="date" 
 									id="med-date" 
 									class="form-control form-control-lg"
-									bind:value={medicineFormData.date_disbursed}
-									required
-								/>
+									required />
 							</div>
 						</div>
-
 						<div class="d-flex gap-2">
 							<button type="submit" class="btn btn-success">
 								{editingType === 'medicine' && editingId ? '💾 Update' : '💾 Create'}
 							</button>
-							<button type="button" on:click={resetMedicineForm} class="btn btn-outline-secondary">Cancel</button>
+							<button  onclick={resetMedicineForm}
+								type="button"
+								class="btn btn-outline-secondary">
+								Cancel
+							</button>
 						</div>
 					</form>
 				</div>

@@ -124,8 +124,10 @@
 						</div>
 
 						<div class="mb-4">
-							<label class="form-label fw-medium">Permissions</label>
-							<PermissionTreeSelector bind:selectedPermissions={permissions} />
+							<label for="permissions" class="form-label fw-medium">Permissions</label>
+							<div id="permissions">
+								<PermissionTreeSelector bind:selectedPermissions={permissions} />
+							</div>
 							<input type="hidden" name="permissions" value={JSON.stringify(permissions)} />
 							<small class="text-muted d-block mt-2">Select the permissions that this role should have</small>
 						</div>

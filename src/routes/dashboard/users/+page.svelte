@@ -5,14 +5,15 @@
 			id: number;
 			username: string;
 			email: string;
-			role: string;
+			role: {
+				id: number;
+				name: string;
+			};
 			createdAt: Date;
 			updatedAt: Date;
 		}>;
 		currentUser: {
 			id: number;
-			username: string;
-			role: string;
 		};
 	}
 
@@ -99,24 +100,19 @@
 							<td><strong style="color: #2c3e50;">{user.username}</strong></td>
 							<td style="color: #7f8c8d;">{user.email}</td>
 							<td>
-								<span class="badge" style="background-color: {user.role === 'admin' ? '#e74c3c' : '#3498db'};">
-									{user.role}
-								</span>
+								{user.role.name}
 							</td>
 							<td><small style="color: #7f8c8d;">{getFormattedDate(user.createdAt)}</small></td>
 							<td>
-								<a
-									href="/dashboard/users/{user.id}"
-									class="btn btn-sm btn-outline-primary"
-								>
+								<a href="/dashboard/users/{user.id}"
+									class="btn btn-sm btn-outline-primary">
 									Edit
 								</a>
 								<button
 									on:click={() => handleDeleteUser(user.id, user.username)}
 									class="btn btn-sm btn-outline-danger"
 									disabled={user.id === data.currentUser.id}
-									title={user.id === data.currentUser.id ? 'Cannot delete your own account' : ''}
-								>
+									title={user.id === data.currentUser.id ? 'Cannot delete your own account' : ''}>
 									Delete
 								</button>
 							</td>

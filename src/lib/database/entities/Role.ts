@@ -1,7 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, BaseEntity } from 'typeorm';
+import { User } from './User';
+import { Permission } from '$lib/utils/Permission';
 
 @Entity('roles')
-export class Role {
+export class Role extends BaseEntity {
 	@PrimaryGeneratedColumn()
 	id!: number;
 
@@ -19,4 +21,12 @@ export class Role {
 
 	@UpdateDateColumn()
 	updatedAt!: Date;
+
+	@OneToMany(() => User, (user) => user.role)
+	users!: User[];
+
+	can(permission: string): boolean {
+		const permissionPath = Permission.getPermissionPath(permission);
+        return this.permissions.some(permission => permissionPath.includes(permission)) ?? false;
+	}
 }

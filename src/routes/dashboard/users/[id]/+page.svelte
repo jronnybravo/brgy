@@ -14,7 +14,7 @@
 			id: number;
 			username: string;
 			email: string;
-			role: string;
+			roleId: number | null;
 			jurisdictionIds?: number[];
 		} | null;
 		isNew: boolean;
