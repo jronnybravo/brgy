@@ -157,6 +157,11 @@ export const GET: RequestHandler = async ({ url }) => {
 						if (condition.purok) query.setParameter(`purok${idx}`, `%${(condition.purok as any).value || ''}%`);
 					});
 				}
+
+				// Apply additional filters as AND conditions
+				if (additionalFilters.barangayId) query.andWhere('person.barangayId = :barangayId', { barangayId: additionalFilters.barangayId });
+				if (additionalFilters.isSupporter !== undefined) query.andWhere('person.isSupporter = :isSupporter', { isSupporter: additionalFilters.isSupporter });
+				if (additionalFilters.isLeader !== undefined) query.andWhere('person.isLeader = :isLeader', { isLeader: additionalFilters.isLeader });
 			} else if (Object.keys(finalWhere).length > 0) {
 				if (finalWhere.barangayId) query.andWhere('person.barangayId = :barangayId', { barangayId: finalWhere.barangayId });
 				if (finalWhere.isSupporter !== undefined) query.andWhere('person.isSupporter = :isSupporter', { isSupporter: finalWhere.isSupporter });

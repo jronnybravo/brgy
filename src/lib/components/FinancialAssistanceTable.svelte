@@ -253,8 +253,18 @@
 		await loadAssistances();
 	});
 
-	$effect.pre(() => {
-		// Load assistances when filters change
+	$effect(() => {
+		// Load assistances when filters/sort/page changes
+		// Reference all reactive dependencies to track them
+		searchQuery;
+		townFilter;
+		barangayFilter;
+		typeFilter;
+		supporterFilter;
+		sortColumn;
+		sortDir;
+		currentPage;
+		
 		loadAssistances();
 	});
 </script>

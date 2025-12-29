@@ -2,9 +2,30 @@ import type { PageServerLoad } from './$types';
 import { Locality } from '$lib/database/entities/Locality';
 import { Person } from '$lib/database/entities/Person';
 import { FinancialAssistance, MedicineAssistance } from '$lib/database/entities/Assistance';
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
+import { User } from '$lib/database/entities/User';
+import { Permission } from '$lib/utils/Permission';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals, cookies }) => {
+	if (!locals.user) {
+		throw redirect(302, '/login');
+	}
+
+	const currentUser = await User.findOne({
+		where: { id: locals.user.id },
+		relations: { role: true }
+	});
+	if (!currentUser) {
+		cookies.delete('auth_token', { path: '/' });
+		throw redirect(302, '/login');
+	}
+
+	const capabilities = {
+		canReadPersons: currentUser.can(Permission.READ_PERSONS),
+		canUpdatePersons: currentUser.can(Permission.UPDATE_PERSONS),
+		canDeletePersons: currentUser.can(Permission.DELETE_PERSONS),
+	};
+
 	try {
 		const barangayId = parseInt(params.barangayId);
 		const municipalityId = parseInt(params.municipalityId);
@@ -184,7 +205,8 @@ export const load: PageServerLoad = async ({ params }) => {
 			assistanceByPerson,
 			medicinesByPerson,
 			medicineNames,
-			supporterDistribution
+			supporterDistribution,
+			capabilities
 		};
 	} catch (e) {
 		console.error('Error loading barangay details:', e);
