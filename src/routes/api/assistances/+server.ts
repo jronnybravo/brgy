@@ -1,68 +1,146 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { Assistance, FinancialAssistance, MedicineAssistance, FinancialAssistanceType } from '$lib/database/entities/Assistance';
+import { Like } from 'typeorm';
+import qs from 'qs';
+import { getDataSource } from '$lib/database/data-source';
 
 export const GET: RequestHandler = async ({ url }) => {
 	try {
-		const personId = url.searchParams.get('personId');
+		const dataSource = await getDataSource();
 		const type = url.searchParams.get('type');
+		
+		// Parse query parameters
+		const params = qs.parse(url.searchParams.toString()) as {
+			start?: string;
+			length?: string;
+			search?: { value: string };
+			filter?: {
+				town?: string;
+				barangay?: string;
+				isSupporter?: string;
+			};
+			assistanceType?: string;
+			order?: 
+				| { 
+					name: string; 
+					dir: 'asc' | 'desc' 
+				}
+				| { 
+					name: string; 
+					dir: 'asc' | 'desc' 
+				}[];
+		};
 
-		const where: any = {};
-		if (personId) {
-			where.personId = parseInt(personId);
+		const start = Number(params.start) || 0;
+		const length = Number(params.length) || 10;
+		
+		// Determine sort column and direction
+		let sortColumn = 'disbursed_date';
+		let sortDir: 'ASC' | 'DESC' = 'DESC';
+		if (params.order) {
+			const orderArray = Array.isArray(params.order) ? params.order : [params.order];
+			if (orderArray.length > 0) {
+				const orderName = orderArray[0].name;
+				// Map sort column names to proper field paths
+				if (orderName === 'person' || orderName === 'personName') {
+					sortColumn = 'person.lastName';
+				} else if (orderName === 'town') {
+					sortColumn = 'parent.name';
+				} else if (orderName === 'barangay') {
+					sortColumn = 'barangay.name';
+				} else if (orderName === 'type') {
+					sortColumn = 'assistance.type';
+				} else {
+					sortColumn = `assistance.${orderName}`;
+				}
+				sortDir = orderArray[0].dir.toUpperCase() as 'ASC' | 'DESC';
+			}
 		}
 
-		// If specific type requested, return only that type
-		if (type === 'financial') {
-			const financialAssistances = await FinancialAssistance.find({
-				where: Object.keys(where).length > 0 ? where : {},
-				relations: { person: true},
-				order: { disbursed_date: 'DESC', createdAt: 'DESC' }
-			});
-			return json({
-				success: true,
-				data: financialAssistances
-			});
+		const searchValue = params.search?.value?.trim();
+		const townFilter = params.filter?.town?.trim();
+		const barangayFilter = params.filter?.barangay?.trim();
+		const assistanceTypeFilter = params.assistanceType?.trim();
+		const supporterFilter = params.filter?.isSupporter?.trim();
+
+		// Determine which assistance type to query
+		const assistanceEntity = type === 'financial' ? FinancialAssistance : MedicineAssistance;
+		const alias = 'assistance';
+
+		// Build query
+		let query = dataSource
+			.createQueryBuilder(assistanceEntity, alias)
+			.leftJoinAndSelect(`${alias}.person`, 'person')
+			.leftJoinAndSelect('person.barangay', 'barangay')
+			.leftJoinAndSelect('barangay.parent', 'parent');
+
+		// Apply search filter (name only)
+		if (searchValue) {
+			query.andWhere(
+				`(person.firstName LIKE :searchValue OR person.lastName LIKE :searchValue)`,
+				{ searchValue: `%${searchValue}%` }
+			);
 		}
 
-		if (type === 'medicine') {
-			const medicineAssistances = await MedicineAssistance.find({
-				where: Object.keys(where).length > 0 ? where : {},
-				relations: { person: true},
-				order: { disbursed_date: 'DESC', createdAt: 'DESC' }
-			});
-			return json({
-				success: true,
-				data: medicineAssistances
-			});
+		// Apply town filter
+		if (townFilter) {
+			query.andWhere('parent.name = :townName', { townName: townFilter });
 		}
 
-		// If no type specified, return both
-		const financialAssistances = await FinancialAssistance.find({
-			where: Object.keys(where).length > 0 ? where : {},
-			relations: { person: true},
-			order: { disbursed_date: 'DESC', createdAt: 'DESC' }
-		});
+		// Apply barangay filter
+		if (barangayFilter) {
+			query.andWhere('barangay.name = :barangayName', { barangayName: barangayFilter });
+		}
 
-		const medicineAssistances = await MedicineAssistance.find({
-			where: Object.keys(where).length > 0 ? where : {},
-			relations: { person: true},
-			order: { disbursed_date: 'DESC', createdAt: 'DESC' }
-		});
+		// Apply supporter filter
+		if (supporterFilter === 'true') {
+			query.andWhere('person.isSupporter = true');
+		} else if (supporterFilter === 'false') {
+			query.andWhere('person.isSupporter = false OR person.isSupporter IS NULL');
+		}
+
+		// Apply assistance type filter (only for financial)
+		if (type === 'financial' && assistanceTypeFilter) {
+			query.andWhere('assistance.type = :assistanceType', { assistanceType: assistanceTypeFilter });
+		}
+
+		// Get total count before pagination
+		const recordsTotal = await query.getCount();
+
+		// Apply sorting
+		let orderByField = 'assistance.disbursed_date';
+		if (sortColumn === 'person.lastName') {
+			orderByField = 'person.lastName';
+		} else if (sortColumn === 'parent.name') {
+			orderByField = 'parent.name';
+		} else if (sortColumn === 'barangay.name') {
+			orderByField = 'barangay.name';
+		} else if (sortColumn === 'type') {
+			orderByField = 'assistance.type';
+		}
+		query.orderBy(orderByField, sortDir);
+
+		// Apply pagination
+		query.offset(start).limit(length);
+
+		const data = await query.getMany();
 
 		return json({
 			success: true,
-			data: {
-				financialAssistances,
-				medicineAssistances
-			}
+			data: data,
+			recordsTotal: recordsTotal,
+			recordsFiltered: data.length
 		});
 	} catch (error) {
-		console.error('Error fetching assistances:', error);
-		return json(
-			{ success: false, error: 'Failed to fetch assistances', details: error instanceof Error ? error.message : String(error) },
-			{ status: 500 }
-		);
+		console.error('[ERROR] assistances GET:', error);
+		return json({ 
+			success: false, 
+			error: error instanceof Error ? error.message : 'Unknown error',
+			data: [],
+			recordsTotal: 0,
+			recordsFiltered: 0
+		}, { status: 500 });
 	}
 };
 

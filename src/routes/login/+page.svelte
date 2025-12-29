@@ -11,6 +11,10 @@
 		error = '';
 		loading = true;
 
+		console.log('[LOGIN DEBUG] username:', username);
+		console.log('[LOGIN DEBUG] password:', password);
+		console.log('[LOGIN DEBUG] Sending body:', { username, password });
+
 		try {
 			const response = await fetch('/api/auth/login', {
 				method: 'POST',

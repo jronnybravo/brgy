@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import PeopleTable from '$lib/components/PeopleTable.svelte';
+	import FinancialAssistanceTable from '$lib/components/FinancialAssistanceTable.svelte';
+	import MedicineAssistanceTable from '$lib/components/MedicineAssistanceTable.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -9,137 +12,86 @@
 		canUpdatePersons: boolean;
 		canDeletePersons: boolean;
 	});
+	const towns = $derived(data.towns || []);
+	const assistanceCapabilities = $derived({
+		canCreateAssistances: capabilities.canCreatePersons,
+		canDeleteAssistances: capabilities.canDeletePersons
+	});
 
 	let people: any[] = $state([]);
-	let financialAssistances: any[] = $state([]);
-	let medicineAssistances: any[] = $state([]);
 	let loading = $state(false);
 	let error = $state('');
-	let showForm = $state(false);
 	let showUpload = $state(false);
-	let editingId: number | null = $state(null);
-	let municipalities: any[] = $state([]);
-	let barangays: any[] = $state([]);
-	let selectedMunicipality = $state('');
 	let uploadLoading = $state(false);
 	let uploadError = $state('');
 	let uploadSuccess = $state('');
 	let uploadResults: any = $state(null);
+	let recordsTotal = $state(0);
+	let recordsFiltered = $state(0);
+	let currentPage = $state(1);
+	let sortColumn = $state('lastName');
+	let sortDir = $state<'asc' | 'desc'>('asc');
+	let townFilter = $state('');
+	let barangayFilter = $state('');
+	let supporterFilter = $state<boolean | null>(null);
+	let searchQuery = $state('');
+	const totalPages = $derived(Math.ceil((recordsFiltered || 1) / 10));
 
-	let formData = $state({
-		firstName: '',
-		lastName: '',
-		middleName: '',
-		extensionName: '',
-		birthdate: '',
-		sex: 'Male',
-		barangayId: '',
-		purok: '',
-		isSupporter: null as boolean | null,
-		isLeader: false
-	});
-
-	async function loadPeople() {
+	async function loadPeople(page?: number) {
+		console.log('[DEBUG] loadPeople called with page:', page);
+		if (page !== undefined && page !== null) {
+			currentPage = page;
+		}
+		
 		loading = true;
+		console.log('[DEBUG] loading set to true, about to fetch');
 		try {
-			const res = await fetch('/api/people');
+			const queryParams = new URLSearchParams();
+			const pageNum = currentPage;
+			const pageSize = 10;
+			
+			queryParams.append('start', ((pageNum - 1) * pageSize).toString());
+			queryParams.append('length', pageSize.toString());
+			queryParams.append('order[0][name]', sortColumn);
+			queryParams.append('order[0][dir]', sortDir);
+			
+			// Add search parameter
+			if (searchQuery.trim()) {
+				queryParams.append('search[value]', searchQuery.trim());
+			}
+			
+			// Add filter parameters
+			if (townFilter) {
+				// Convert town ID to town name for API
+				const selectedTown = towns.find(t => t.id == parseInt(townFilter));
+				if (selectedTown) {
+					queryParams.append('filter[town]', selectedTown.name);
+				}
+			}
+			if (barangayFilter) {
+				queryParams.append('filter[barangay]', barangayFilter);
+			}
+			if (supporterFilter !== null) {
+				queryParams.append('filter[isSupporter]', supporterFilter.toString());
+			}
+
+			const queryString = queryParams.toString();
+			console.log('[DEBUG] fetching from /api/people with params:', queryString);
+			const res = await fetch(`/api/people?${queryString}`);
+			console.log('[DEBUG] fetch response received:', res.status);
 			if (!res.ok) throw new Error('Failed to load people');
 			const result = await res.json();
-			people = result.data || result;
-			console.log('Loaded people:', people);
+			console.log('[DEBUG] json parsed, setting state');
+			people = result.data || [];
+			recordsTotal = result.recordsTotal || 0;
+			recordsFiltered = result.recordsFiltered || 0;
+			console.log('Loaded people with pagination:', { total: result.recordsTotal, filtered: result.recordsFiltered, dataLength: people.length });
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Error loading people';
+			console.error('[DEBUG] Error in loadPeople:', e);
 		} finally {
 			loading = false;
-		}
-	}
-
-	async function loadAssistances() {
-		try {
-			const [financialRes, medicineRes] = await Promise.all([
-				fetch('/api/assistances?type=financial'),
-				fetch('/api/assistances?type=medicine')
-			]);
-
-			if (financialRes.ok) {
-				const financialResult = await financialRes.json();
-				financialAssistances = financialResult.data || financialResult || [];
-			}
-
-			if (medicineRes.ok) {
-				const medicineResult = await medicineRes.json();
-				medicineAssistances = medicineResult.data || medicineResult || [];
-			}
-		} catch (e) {
-			console.error('Error loading assistances:', e);
-		}
-	}
-
-	async function loadMunicipalitiesAndBarangays() {
-		try {
-			// Get Siquijor Province
-			const locRes = await fetch('/api/localities');
-			if (!locRes.ok) throw new Error('Failed to load localities');
-			const allLocalities = await locRes.json();
-
-			// Find Siquijor Province
-			const siquijor = allLocalities.find((l: any) => l.name.includes('SIQUIJOR') && l.type === 'province');
-			if (!siquijor) throw new Error('Siquijor Province not found');
-
-			// Get municipalities in Siquijor
-			const muns = allLocalities.filter((l: any) => l.parentId === siquijor.id && (l.type === 'municipality' || l.type === 'city'));
-			municipalities = muns.sort((a: any, b: any) => a.name.localeCompare(b.name));
-
-			// Get all barangays in Siquijor
-			const barIds = muns.map((m: any) => m.id);
-			const allBarangays = allLocalities.filter((l: any) => barIds.includes(l.parentId) && l.type === 'barangay');
-			barangays = allBarangays.sort((a: any, b: any) => a.name.localeCompare(b.name));
-		} catch (e) {
-			console.error('Error loading municipalities and barangays:', e);
-		}
-	}
-
-	let filteredBarangays = $derived.by(() => {
-		if (!selectedMunicipality) {
-			return barangays;
-		}
-		const municipalityId = parseInt(selectedMunicipality);
-		return barangays.filter((b: any) => b.parentId === municipalityId);
-	});
-
-	async function savePerson(e?: Event) {
-		e?.preventDefault();
-		
-		if (!formData.firstName || !formData.lastName || !formData.birthdate || !formData.barangayId) {
-			error = 'Please fill in all required fields';
-			return;
-		}
-
-		try {
-			const method = editingId ? 'PUT' : 'POST';
-			const endpoint = editingId ? `/api/people/${editingId}` : '/api/people';
-
-			// Convert barangayId back to number for API
-			const dataToSend = {
-				...formData,
-				barangayId: parseInt(formData.barangayId as any)
-			};
-
-			const res = await fetch(endpoint, {
-				method,
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(dataToSend)
-			});
-
-			if (!res.ok) {
-				const errorData = await res.json();
-				throw new Error(errorData.message || 'Failed to save person');
-			}
-
-			resetForm();
-			await loadPeople();
-		} catch (e) {
-			error = e instanceof Error ? e.message : 'Error saving person';
+			console.log('[DEBUG] loading set to false');
 		}
 	}
 
@@ -156,39 +108,41 @@
 	}
 
 	function editPerson(person: any) {
-		formData = { ...person };
-		editingId = person.id;
-		
-		// Convert barangayId to string for select binding
-		formData.barangayId = person.barangayId?.toString() || '';
-		
-		// Find and set the municipality for the barangay
-		const barangay = barangays.find(b => b.id === person.barangayId);
-		if (barangay) {
-			selectedMunicipality = barangay.parentId.toString();
-		}
-		
-		showForm = true;
-		error = '';
+		goto(`/dashboard/people/${person.id}`);
 	}
 
-	function resetForm() {
-		formData = {
-			firstName: '',
-			lastName: '',
-			middleName: '',
-			extensionName: '',
-			birthdate: '',
-			sex: 'Male',
-			barangayId: '',
-			purok: '',
-			isSupporter: null,
-			isLeader: false
-		};
-		selectedMunicipality = '';
-		editingId = null;
-		showForm = false;
-		error = '';
+
+
+	function handleSort(column: string, direction: 'asc' | 'desc') {
+		sortColumn = column;
+		sortDir = direction;
+		currentPage = 1;
+		loadPeople(1);
+	}
+
+	function handleTownFilter(townId: string) {
+		townFilter = townId; // Keep as ID for dropdown display
+		barangayFilter = ''; // Reset barangay filter when town changes
+		currentPage = 1;
+		loadPeople(1);
+	}
+
+	function handleBarangayFilter(barangay: string) {
+		barangayFilter = barangay;
+		currentPage = 1;
+		loadPeople(1);
+	}
+
+	function handleSupporterFilter(isSupporter: boolean | null) {
+		supporterFilter = isSupporter;
+		currentPage = 1;
+		loadPeople(1);
+	}
+
+	function handleSearch(query: string) {
+		searchQuery = query;
+		currentPage = 1;
+		loadPeople(1);
 	}
 
 	async function handleFileUpload(event: Event) {
@@ -244,9 +198,9 @@
 	}
 
 	onMount(async () => {
+		console.log('[DEBUG] onMount started');
 		await loadPeople();
-		await loadMunicipalitiesAndBarangays();
-		await loadAssistances();
+		console.log('[DEBUG] onMount completed');
 	});
 </script>
 
@@ -259,8 +213,8 @@
 				<button onclick={() => (showUpload = !showUpload)} class="btn btn-info btn-lg">
 					{showUpload ? '✕ Cancel' : '📤 Upload CSV'}
 				</button>
-				<button onclick={() => (showForm = !showForm)} class="btn btn-primary btn-lg">
-					{showForm ? '✕ Cancel' : '+ Add Person'}
+				<button onclick={() => goto('/dashboard/people/new')} class="btn btn-primary btn-lg">
+					+ Add Person
 				</button>
 			</div>
 		{/if}
@@ -353,209 +307,36 @@
 		</div>
 	{/if}
 
-	{#if showForm}
-		<div class="modal d-block" style="background-color: rgba(0, 0, 0, 0.5);">
-			<div class="modal-dialog modal-lg">
-				<div class="modal-content">
-					<div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
-						<h5 class="modal-title">{editingId ? '✏️ Edit Person' : '➕ Add New Person'}</h5>
-						<button type="button" class="btn-close btn-close-white" onclick={resetForm}></button>
-					</div>
-					<div class="modal-body">
-						<form onsubmit={savePerson} id="personForm">
-							<div class="row mb-3">
-								<div class="col-md-6">
-									<label for="lastName" class="form-label fw-500">Last Name *</label>
-									<input
-										type="text"
-										id="lastName"
-										class="form-control form-control-lg"
-										bind:value={formData.lastName}
-										placeholder="Enter last name"
-										required
-									/>
-								</div>
-								<div class="col-md-6">
-									<label for="firstName" class="form-label fw-500">First Name *</label>
-									<input
-										type="text"
-										id="firstName"
-										class="form-control form-control-lg"
-										bind:value={formData.firstName}
-										placeholder="Enter first name"
-										required
-									/>
-								</div>
-							</div>
-
-							<div class="row mb-3">
-								<div class="col-md-6">
-									<label for="middleName" class="form-label fw-500">Middle Name</label>
-									<input
-										type="text"
-										id="middleName"
-										class="form-control form-control-lg"
-										bind:value={formData.middleName}
-										placeholder="Enter middle name"
-									/>
-								</div>
-								<div class="col-md-6">
-									<label for="extensionName" class="form-label fw-500">Extension Name</label>
-									<input
-										type="text"
-										id="extensionName"
-										class="form-control form-control-lg"
-										bind:value={formData.extensionName}
-										placeholder="e.g., Jr., Sr., III"
-									/>
-								</div>
-							</div>
-
-							<div class="row mb-3">
-								<div class="col-md-6">
-									<label for="birthdate" class="form-label fw-500">Birthdate *</label>
-									<input 
-										type="date" 
-										id="birthdate" 
-										class="form-control form-control-lg"
-										bind:value={formData.birthdate}
-										required
-									/>
-								</div>
-								<div class="col-md-6">
-									<label for="sex" class="form-label fw-500">Sex *</label>
-									<select id="sex" class="form-select form-select-lg" bind:value={formData.sex} required>
-									<option value="Male">Male</option>
-									<option value="Female">Female</option>
-									</select>
-								</div>
-							</div>
-
-							<div class="row mb-3">
-								<div class="col-md-6">
-									<label for="municipality" class="form-label fw-500">Municipality *</label>
-									<select id="municipality" class="form-select form-select-lg" bind:value={selectedMunicipality} required>
-										<option value="">-- Select Municipality --</option>
-										{#each municipalities as municipality}
-											<option value={municipality.id.toString()}>{municipality.name}</option>
-										{/each}
-									</select>
-								</div>
-								<div class="col-md-6">
-									<label for="barangayId" class="form-label fw-500">Barangay *</label>
-									<select id="barangayId" class="form-select form-select-lg" bind:value={formData.barangayId} required>
-										<option value="">-- Select Barangay --</option>
-										{#each filteredBarangays as barangay}
-											<option value={barangay.id.toString()}>{barangay.name}</option>
-										{/each}
-									</select>
-								</div>
-							</div>
-
-							<div class="mb-3">
-								<label for="purok" class="form-label fw-500">Purok</label>
-								<input 
-									type="text" 
-									id="purok" 
-									class="form-control form-control-lg"
-									bind:value={formData.purok} 
-									placeholder="Enter purok" 
-								/>
-							</div>
-
-							<div class="row mb-3">
-								<div class="col-md-6">
-									<div class="mb-3">
-										<div class="form-label fw-500 d-block mb-2">Is Supporter?</div>
-										<div class="btn-group" role="group" aria-label="Is Supporter options">
-											<input onchange={() => formData.isSupporter = true}
-												type="radio" 
-												class="btn-check" 
-												id="supporterYes" 
-												name="isSupporter" 
-												value="yes"
-												checked={formData.isSupporter === true} />
-											<label class="btn btn-outline-primary" for="supporterYes">Yes</label>
-
-											<input onchange={() => formData.isSupporter = false}
-												type="radio" 
-												class="btn-check" 
-												id="supporterNo" 
-												name="isSupporter" 
-												value="no"
-												checked={formData.isSupporter === false} />
-											<label class="btn btn-outline-primary" for="supporterNo">No</label>
-
-											<input onchange={() => formData.isSupporter = null}
-												type="radio" 
-												class="btn-check" 
-												id="supporterUnsure" 
-												name="isSupporter" 
-												value="unsure"
-												checked={formData.isSupporter === null} />
-											<label class="btn btn-outline-primary" for="supporterUnsure">Unsure</label>
-										</div>
-									</div>
-								</div>
-
-								<div class="col-md-6">
-									<label for="isLeader" class="form-label fw-500 d-block">Is Leader?</label>
-									<div class="form-check">
-										<input 
-											type="checkbox" 
-											class="form-check-input" 
-											id="isLeader"
-											bind:checked={formData.isLeader}
-										/>
-										<label class="form-check-label" for="isLeader">
-											Mark as leader
-										</label>
-									</div>
-								</div>
-							</div>
-						</form>
-					</div>
-					<div class="modal-footer">
-						<button onclick={resetForm} 
-							type="button"
-							class="btn btn-secondary">Cancel</button>
-						<button type="submit" form="personForm" class="btn btn-success">
-							{editingId ? '💾 Update' : '💾 Create'}
-						</button>
-					</div>
-				</div>
-			</div>
-		</div>
-	{/if}
-
 	<div class="card shadow-sm border-0" style="border-top: 4px solid #27ae60; margin-top: 2rem;">
 		<div class="card-header" style="background-color: #f8f9fa;">
 			<h5 class="mb-0 fw-bold" style="color: #2c3e50;">People List</h5>
 		</div>
 		<div class="card-body">
-			{#if loading}
-				<div class="text-center py-5 text-muted">
-					<div class="spinner-border me-2" role="status">
-						<span class="visually-hidden">Loading...</span>
-					</div>
-					Loading people...
-				</div>
-			{:else if people.length === 0}
-				<div class="text-center py-5 text-muted">
-					<p class="mb-0 fs-5">No people found</p>
-					<small class="text-muted">Add your first person to get started</small>
-				</div>
-			{:else}
-				<PeopleTable {capabilities}
-					{people}
-					{financialAssistances}
-					{medicineAssistances}
-					onEdit={editPerson}
-					onDelete={deletePerson}
-				/>
-			{/if}
+			<PeopleTable {capabilities}
+				{people}
+				{recordsTotal}
+				{recordsFiltered}
+				{currentPage}
+				{totalPages}
+				{loading}
+				{sortColumn}
+				{sortDir}
+				{townFilter}
+				{barangayFilter}
+				onEdit={editPerson}
+				onDelete={deletePerson}
+				onPageChange={loadPeople}
+				onSort={handleSort}
+				onSearch={handleSearch}
+				onTownFilter={handleTownFilter}
+				onBarangayFilter={handleBarangayFilter}
+				onSupporterFilter={handleSupporterFilter}
+			/>
 		</div>
 	</div>
+
+	<FinancialAssistanceTable capabilities={assistanceCapabilities} />
+	<MedicineAssistanceTable capabilities={assistanceCapabilities} />
 </div>
 
 <style>

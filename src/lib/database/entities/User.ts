@@ -35,7 +35,7 @@ export class User extends BaseEntity {
 	})
 	jurisdictions?: Locality[];
 
-	@ManyToOne(() => Role, (role) => role.users, { eager: true })
+	@ManyToOne(() => Role, (role) => role.users, { eager: false })
 	role!: Role;
 
 	can(permission: string): boolean {

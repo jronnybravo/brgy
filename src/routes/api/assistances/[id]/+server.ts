@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
-import { Assistance, FinancialAssistance } from '$lib/database/entities/Assistance';
+import { Assistance, FinancialAssistance, MedicineAssistance } from '$lib/database/entities/Assistance';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {
@@ -72,7 +72,12 @@ export const DELETE: RequestHandler = async ({ params }) => {
 	try {
 		const id = parseInt(params.id!);
 
-		const assistance = await FinancialAssistance.findOne({ where: { id } });
+		// Try to find and delete from both tables
+		let assistance = await FinancialAssistance.findOne({ where: { id } });
+		
+		if (!assistance) {
+			assistance = await MedicineAssistance.findOne({ where: { id } });
+		}
 
 		if (!assistance) {
 			return json({ success: false, error: 'Assistance not found' }, { status: 404 });

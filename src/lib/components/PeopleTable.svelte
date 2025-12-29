@@ -1,104 +1,97 @@
 <script lang="ts">
-	export let people: any[] = [];
-	export let financialAssistances: any[] = [];
-	export let medicineAssistances: any[] = [];
-	export let showLocationColumns = true; // Toggle town and barangay columns
-	export let onEdit: ((person: any) => void) | null = null;
-	export let onDelete: ((id: number) => void) | null = null;
-
-	export let capabilities: {
-		canUpdatePersons: boolean;
-		canDeletePersons: boolean;
-	} = {
-		canDeletePersons: true,
-		canUpdatePersons: true,
+	import { onMount } from 'svelte';
+	import Pagination from './Pagination.svelte';
+	
+	interface Props {
+		people?: any[];
+		financialAssistances?: any[];
+		medicineAssistances?: any[];
+		showLocationColumns?: boolean;
+		onEdit?: ((person: any) => void) | null;
+		onDelete?: ((id: number) => void) | null;
+		onPageChange?: ((page: number) => Promise<void>) | null;
+		onSort?: ((column: string, direction: 'asc' | 'desc') => void) | null;
+		onSearch?: ((query: string) => void) | null;
+		onTownFilter?: ((town: string) => void) | null;
+		onBarangayFilter?: ((barangay: string) => void) | null;
+		onSupporterFilter?: ((isSupporterFilter: boolean | null) => void) | null;
+		recordsTotal?: number;
+		recordsFiltered?: number;
+		currentPage?: number;
+		totalPages?: number;
+		loading?: boolean;
+		sortColumn?: string;
+		sortDir?: 'asc' | 'desc';
+		capabilities?: {
+			canUpdatePersons: boolean;
+			canDeletePersons: boolean;
+		};
+		townFilter?: string;
+		barangayFilter?: string;
 	}
 
-	let searchQuery = '';
-	let sortColumn = 'firstName';
-	let sortDirection: 'asc' | 'desc' = 'asc';
-	let currentPage = 1;
-	let isSupporterFilter: boolean | null = null;
+	let {
+		people = [],
+		financialAssistances = [],
+		medicineAssistances = [],
+		showLocationColumns = true,
+		onEdit = null,
+		onDelete = null,
+		onPageChange = null,
+		onSort = null,
+		onSearch = null,
+		onTownFilter = null,
+		onBarangayFilter = null,
+		onSupporterFilter = null,
+		recordsTotal = 0,
+		recordsFiltered = 0,
+		currentPage = 1,
+		totalPages = 1,
+		loading = false,
+		sortColumn = 'lastName',
+		sortDir = 'asc' as 'asc' | 'desc',
+		capabilities = {
+			canDeletePersons: true,
+			canUpdatePersons: true,
+		},
+		townFilter = '',
+		barangayFilter = ''
+	}: Props = $props();
+
+	let searchQuery = $state('');
+	let isSupporterFilter = $state<boolean | null>(null);
+	let towns: any[] = $state([]);
+	let townLoading = $state(false);
 	const pageSize = 10;
 
-	let filteredData: any[] = [];
-	let showAidModal = false;
-	let selectedPerson: any = null;
-	let selectedAidType: 'financial' | 'medicine' | null = null;
+	let showAidModal = $state(false);
+	let selectedPerson = $state<any>(null);
+	let selectedAidType = $state<'financial' | 'medicine' | null>(null);
 
-	function applyFiltersAndSort() {
-		let filtered = people;
-
-		// Search filter
-		if (searchQuery) {
-			const query = searchQuery.toLowerCase();
-			filtered = filtered.filter(p =>
-				`${p.firstName} ${p.lastName}`.toLowerCase().includes(query) ||
-				p.purok?.toLowerCase().includes(query) ||
-				p.barangay?.name?.toLowerCase().includes(query) ||
-				p.barangay?.parent?.name?.toLowerCase().includes(query)
-			);
+	async function loadTowns() {
+		try {
+			townLoading = true;
+			const res = await fetch('/api/locations/town-barangay');
+			if (!res.ok) throw new Error('Failed to load towns');
+			const result = await res.json();
+			towns = result.towns || [];
+		} catch (e) {
+			console.error('Error loading towns:', e);
+		} finally {
+			townLoading = false;
 		}
-
-		// Is Supporter filter
-		if (isSupporterFilter !== null) {
-			filtered = filtered.filter(p => p.isSupporter === isSupporterFilter);
-		}
-
-		// Sort
-		filtered.sort((a, b) => {
-			let aVal: any = a[sortColumn];
-			let bVal: any = b[sortColumn];
-
-			// Handle nested fields like barangay.name
-			if (sortColumn === 'town') {
-				aVal = a.barangay?.parent?.name ?? '';
-				bVal = b.barangay?.parent?.name ?? '';
-			} else if (sortColumn === 'barangay') {
-				aVal = a.barangay?.name ?? '';
-				bVal = b.barangay?.name ?? '';
-			}
-
-			// Handle numeric comparisons
-			if (sortColumn === 'financialTotal' || sortColumn === 'medicineCount') {
-				if (sortColumn === 'financialTotal') {
-					aVal = getFinancialTotal(a.id);
-					bVal = getFinancialTotal(b.id);
-				} else {
-					aVal = getMedicineCount(a.id);
-					bVal = getMedicineCount(b.id);
-				}
-				return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
-			}
-
-			// String comparison
-			if (typeof aVal === 'string' && typeof bVal === 'string') {
-				aVal = aVal.toLowerCase();
-				bVal = bVal.toLowerCase();
-			}
-
-			if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
-			if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
-			return 0;
-		});
-
-		filteredData = filtered;
-		currentPage = 1;
 	}
 
-	function handleSort(column: string) {
-		if (sortColumn === column) {
-			sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-		} else {
-			sortColumn = column;
-			sortDirection = 'asc';
-		}
-		applyFiltersAndSort();
-	}
+	onMount(async () => {
+		// Load towns once on mount
+		await loadTowns();
+	});
 
 	function handleSearch(e: Event) {
 		searchQuery = (e.target as HTMLInputElement).value;
-		applyFiltersAndSort();
+		if (onSearch) {
+			onSearch(searchQuery);
+		}
 	}
 
 	function toggleSupporterFilter() {
@@ -109,17 +102,19 @@
 		} else {
 			isSupporterFilter = null;
 		}
-		applyFiltersAndSort();
+		if (onSupporterFilter) {
+			onSupporterFilter(isSupporterFilter);
+		}
 	}
 
-	function getFinancialTotal(personId: number): number {
-		return financialAssistances
-			.filter(fa => fa.personId === personId)
-			.reduce((sum, fa) => sum + parseFloat(fa.value || 0), 0);
+	function getFinancialTotal(person: any): number {
+		// Use pre-computed aggregate from server
+		return person.financialTotal || 0;
 	}
 
-	function getMedicineCount(personId: number): number {
-		return medicineAssistances.filter(ma => ma.personId === personId).length;
+	function getMedicineCount(person: any): number {
+		// Use pre-computed aggregate from server
+		return person.medicineCount || 0;
 	}
 
 	function formatCurrency(value: number): string {
@@ -149,17 +144,7 @@
 		return medicineAssistances.filter(ma => ma.personId === personId);
 	}
 
-	$: paginatedData = filteredData.slice(
-		(currentPage - 1) * pageSize,
-		currentPage * pageSize
-	);
-	$: totalPages = Math.ceil(filteredData.length / pageSize);
-
-	$: if (people && people.length > 0) {
-		applyFiltersAndSort();
-	} else if (people && people.length === 0) {
-		filteredData = [];
-	}
+	const paginatedData = $derived(people);
 
 	const editPerson = (person: any) => {
 		if (onEdit) {
@@ -172,15 +157,33 @@
 			onDelete(id);
 		}
 	};
+
+	function handlePageChange(page: number) {
+		if (onPageChange) {
+			onPageChange(page);
+		}
+	}
+
+	function handleColumnSort(column: string) {
+		let newDir: 'asc' | 'desc' = 'asc';
+		if (sortColumn === column) {
+			// Toggle direction if same column
+			newDir = sortDir === 'asc' ? 'desc' : 'asc';
+		} else {
+			// New column, start with asc
+			newDir = 'asc';
+		}
+		// Trigger sort through callback
+		if (onSort) {
+			onSort(column, newDir);
+		}
+	}
 </script>
 
 <div class="card shadow-sm border-0">
 	<div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
 		<div class="row align-items-center">
-			<div class="col-md-6">
-				<h5 class="mb-0">👥 People</h5>
-			</div>
-			<div class="col-md-3">
+			<div class="col-md-2">
 				<input
 					type="text"
 					class="form-control form-control-sm"
@@ -190,7 +193,49 @@
 					style="background-color: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);"
 				/>
 			</div>
-			<div class="col-md-3 text-end">
+			<div class="col-md-2">
+				<select
+					class="form-select form-select-sm"
+					value={String(townFilter)}
+					onchange={(e) => {
+						const town = (e.target as HTMLSelectElement).value;
+						if (onTownFilter) onTownFilter(town);
+					}}
+					style="background-color: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);"
+				>
+					<option value="">All Towns</option>
+					{#each towns as town}
+						<option value={String(town.id)}>{town.name}</option>
+					{/each}
+				</select>
+			</div>
+			<div class="col-md-2">
+				<select
+					class="form-select form-select-sm"
+					value={barangayFilter}
+					onchange={(e) => {
+						const barangay = (e.target as HTMLSelectElement).value;
+						if (onBarangayFilter) onBarangayFilter(barangay);
+					}}
+					style="background-color: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);"
+				>
+					<option value="">All Barangays</option>
+					{#if townFilter}
+					{#each towns.find(t => t.id == townFilter)?.children || [] as barangay}
+							<option value={barangay.name}>{barangay.name}</option>
+						{/each}
+					{:else}
+						{#each towns as town}
+							<optgroup label={town.name}>
+								{#each town.children || [] as barangay}
+									<option value={barangay.name}>{barangay.name}</option>
+								{/each}
+							</optgroup>
+						{/each}
+					{/if}
+				</select>
+			</div>
+			<div class="col-md-2">
 				<div class="form-check form-check-inline">
 					<input class="form-check-input"
 						type="checkbox"
@@ -211,94 +256,47 @@
 		<table class="table table-hover mb-0">
 			<thead class="table-light">
 				<tr>
-					<th onclick={() => handleSort('firstName')}
-						onkeydown={(e) => e.key === 'Enter' && handleSort('firstName')}
-						style="cursor: pointer;"
-						class:fw-bold={sortColumn === 'firstName'}
-						role="button"
-						tabindex="0">
-						Name
-						{#if sortColumn === 'firstName'}
-							<span class="float-end">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-						{/if}
+					<th style="cursor: pointer;" onclick={() => handleColumnSort('lastName')}>
+						Name {#if sortColumn === 'lastName'}{sortDir === 'asc' ? '↑' : '↓'}{/if}
 					</th>
 					{#if showLocationColumns}
-						<th onclick={() => handleSort('town')}
-							onkeydown={(e) => e.key === 'Enter' && handleSort('town')}
-							style="cursor: pointer;"
-							class:fw-bold={sortColumn === 'town'}
-							role="button"
-							tabindex="0">
-							Town
-							{#if sortColumn === 'town'}
-								<span class="float-end">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-							{/if}
-						</th>
-						<th onclick={() => handleSort('barangay')}
-							onkeydown={(e) => e.key === 'Enter' && handleSort('barangay')}
-							style="cursor: pointer;"
-							class:fw-bold={sortColumn === 'barangay'}
-							role="button"
-							tabindex="0">
-							Barangay
-							{#if sortColumn === 'barangay'}
-								<span class="float-end">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-							{/if}
-						</th>
+						<th>Town</th>
+						<th>Barangay</th>
 					{/if}
-					<th onclick={() => handleSort('purok')}
-						onkeydown={(e) => e.key === 'Enter' && handleSort('purok')}
-						style="cursor: pointer;"
-						class:fw-bold={sortColumn === 'purok'}
-						role="button"
-						tabindex="0">
-						Purok
-						{#if sortColumn === 'purok'}
-							<span class="float-end">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-						{/if}
+					<th>Purok</th>
+					<th>Is Supporter</th>
+					<th class="text-end" style="cursor: pointer;" onclick={() => handleColumnSort('financialTotal')}>
+						Financial Aid (total) {#if sortColumn === 'financialTotal'}{sortDir === 'asc' ? '↑' : '↓'}{/if}
 					</th>
-					<th onclick={() => handleSort('isSupporter')}
-						onkeydown={(e) => e.key === 'Enter' && handleSort('isSupporter')}
-						style="cursor: pointer;"
-						class:fw-bold={sortColumn === 'isSupporter'}
-						role="button"
-						tabindex="0">
-						Is Supporter
-						{#if sortColumn === 'isSupporter'}
-							<span class="float-end">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-						{/if}
-					</th>
-					<th onclick={() => handleSort('financialTotal')}
-						onkeydown={(e) => e.key === 'Enter' && handleSort('financialTotal')}
-						style="cursor: pointer;"
-						class:fw-bold={sortColumn === 'financialTotal'}
-						role="button"
-						tabindex="0"
-						class="text-end">
-						Financial Aid (total)
-						{#if sortColumn === 'financialTotal'}
-							<span class="float-end">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-						{/if}
-					</th>
-					<th onclick={() => handleSort('medicineCount')}
-						onkeydown={(e) => e.key === 'Enter' && handleSort('medicineCount')}
-						style="cursor: pointer;"
-						class:fw-bold={sortColumn === 'medicineCount'}
-						role="button"
-						tabindex="0"
-						class="text-center">
-						Medicine Aid (count)
-						{#if sortColumn === 'medicineCount'}
-							<span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
-						{/if}
+					<th class="text-center" style="cursor: pointer;" onclick={() => handleColumnSort('medicineCount')}>
+						Medicine Aid (count) {#if sortColumn === 'medicineCount'}{sortDir === 'asc' ? '↑' : '↓'}{/if}
 					</th>
 					<th class="text-center">Actions</th>
 				</tr>
 			</thead>
 			<tbody>
-				{#each paginatedData as person (person.id)}
+				{#if loading}
 					<tr>
-						<td class="fw-bold" style="color: #2c3e50;">{person.firstName} {person.lastName}</td>
+						<td colspan="8" class="text-center py-5 text-muted">
+							<div class="spinner-border me-2" role="status">
+								<span class="visually-hidden">Loading...</span>
+							</div>
+							Loading people...
+						</td>
+					</tr>
+				{:else if paginatedData.length === 0}
+					<tr>
+						<td colspan="8" class="text-center py-5 text-muted">
+							<p class="mb-0 fs-5">No people found</p>
+							<small class="text-muted">Add your first person to get started</small>
+						</td>
+					</tr>
+				{:else}
+					{#each paginatedData as person (person.id)}
+					<tr>
+						<td class="fw-bold" style="color: #2c3e50;">
+							{person.lastName}{person.firstName ? `, ${person.firstName}` : ''}{person.middleName ? ` ${person.middleName.charAt(0)}.` : ''}
+						</td>
 						{#if showLocationColumns}
 							<td>{person.barangay?.parent?.name || '-'}</td>
 							<td>{person.barangay?.name || '-'}</td>
@@ -314,92 +312,63 @@
 							{/if}
 						</td>
 						<td class="text-end">
-							{#if getFinancialTotal(person.id) > 0}
+							{#if getFinancialTotal(person) > 0}
 								<button onclick={() => openAidHistory(person, 'financial')}
 									class="badge bg-success" 
 									style="border: none; cursor: pointer; padding: 0.5em 0.75em;"
 									title="Click to view history">
-									{formatCurrency(getFinancialTotal(person.id))}
+									{formatCurrency(getFinancialTotal(person))}
 								</button>
 							{:else}
 								<span class="badge bg-light text-dark">-</span>
 							{/if}
 						</td>
 						<td class="text-center">
-							{#if getMedicineCount(person.id) > 0}
+							{#if getMedicineCount(person) > 0}
 								<button onclick={() => openAidHistory(person, 'medicine')}
 									class="badge bg-info" 
 									style="border: none; cursor: pointer; padding: 0.5em 0.75em;"
 									title="Click to view history">
-									{getMedicineCount(person.id)}
+									{getMedicineCount(person)}
 								</button>
 							{:else}
 								<span class="badge bg-light text-dark">-</span>
 							{/if}
 						</td>
 						<td class="text-center">
-							{#if capabilities.canUpdatePersons}
-								<button onclick={() => editPerson(person)}
-									class="btn btn-sm btn-warning me-1"
-									title="Edit person">
-									✏️
-								</button>
-							{/if}
-							{#if capabilities.canDeletePersons}
-								<button onclick={() => deletePerson(person.id)}
-									class="btn btn-sm btn-danger"
-									title="Delete person">
-									🗑️
-								</button>
-							{/if}
+							<div style="display: flex; gap: 0.5rem; justify-content: center;">
+								{#if capabilities.canUpdatePersons}
+									<button onclick={() => editPerson(person)}
+										class="btn btn-sm btn-warning"
+										title="Edit person">
+										✏️
+									</button>
+								{/if}
+								{#if capabilities.canDeletePersons}
+									<button onclick={() => deletePerson(person.id)}
+										class="btn btn-sm btn-danger"
+										title="Delete person">
+										🗑️
+									</button>
+								{/if}
+							</div>
 						</td>
 					</tr>
-				{/each}
+					{/each}
+				{/if}
 			</tbody>
 		</table>
 	</div>
 
 	<div class="card-footer bg-light d-flex justify-content-between align-items-center">
 		<div class="text-muted small">
-			Showing {Math.min((currentPage - 1) * pageSize + 1, filteredData.length)} to {Math.min(currentPage * pageSize, filteredData.length)} of {filteredData.length} ({people.length} total)
+			Showing {Math.min((currentPage - 1) * pageSize + 1, recordsFiltered)} to {Math.min(currentPage * pageSize, recordsFiltered)} of {recordsFiltered} ({recordsTotal} total)
 		</div>
-		<nav aria-label="Table pagination">
-			<ul class="pagination mb-0">
-				<li class="page-item" class:disabled={currentPage === 1}>
-					<button onclick={() => (currentPage = 1)}
-						class="page-link"
-						disabled={currentPage === 1}>
-						First
-					</button>
-				</li>
-				<li class="page-item" class:disabled={currentPage === 1}>
-					<button onclick={() => (currentPage = Math.max(1, currentPage - 1))}
-						class="page-link"
-						disabled={currentPage === 1}>
-						Prev
-					</button>
-				</li>
-				<li class="page-item active">
-					<span class="page-link">
-						Page {currentPage} of {totalPages || 1}
-					</span>
-				</li>
-				<li class="page-item" class:disabled={currentPage === totalPages || totalPages === 0}>
-					<button onclick={() => (currentPage = Math.min(totalPages, currentPage + 1))}
-						class="page-link"
-						disabled={currentPage === totalPages || totalPages === 0}>
-						Next
-					</button>
-				</li>
-				<li class="page-item" class:disabled={currentPage === totalPages || totalPages === 0}>
-					<button onclick={() => (currentPage = totalPages)}
-						class="page-link"
-						disabled={currentPage === totalPages || totalPages === 0}>
-						Last
-					</button>
-				</li>
-			</ul>
-		</nav>
+		<Pagination 
+			{currentPage}
+			totalPages={totalPages}
+			onPageChange={handlePageChange}
+		/>
 	</div>
 </div>
 
