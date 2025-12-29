@@ -25,6 +25,8 @@ export class Permission {
     static UPDATE_ASSISTANCES = 'Update Assistances';
     static DELETE_ASSISTANCES = 'Delete Assistances';
 
+    static READ_REPORTS = 'Read Reports';
+
     static getHierarchy() {
         return {
             [this.DO_EVERYTHING]: {
@@ -52,6 +54,7 @@ export class Permission {
                     [this.UPDATE_ASSISTANCES]: { requires: [ this.READ_ASSISTANCES] },
                     [this.DELETE_ASSISTANCES]: { requires: [ this.READ_ASSISTANCES] },
                 },
+                [this.READ_REPORTS]: true, 
             }
         };
     }

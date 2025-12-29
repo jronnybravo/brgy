@@ -2,9 +2,23 @@ import type { PageServerLoad } from './$types';
 import { Locality } from '$lib/database/entities/Locality';
 import { FinancialAssistance, MedicineAssistance } from '$lib/database/entities/Assistance';
 import { Person } from '$lib/database/entities/Person';
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
+import { User } from '$lib/database/entities/User';
+import { Permission } from '$lib/utils/Permission';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ locals, cookies, params }) => {
+	const currentUser = await User.findOne({
+		where: { id: locals.user?.id },
+		relations: { role: true }
+	});
+	if (!currentUser) {
+		cookies.delete('auth_token', { path: '/' });
+		throw redirect(302, '/login');
+	}
+	if(!currentUser.can(Permission.READ_REPORTS)) {
+		throw error(401, 'Unauthorized');
+	}
+	
 	try {
 		const municipalityId = parseInt(params.municipalityId);
 

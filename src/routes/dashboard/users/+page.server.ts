@@ -32,7 +32,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 
 	const users = instanceToPlain(await User.find({
 		order: { id: 'ASC' },
-		relations: { role: true }
+		relations: { role: true, jurisdictions: { parent: true } }
 	}));
 	
 	return {

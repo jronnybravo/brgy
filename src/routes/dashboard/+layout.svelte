@@ -10,6 +10,7 @@
 		canReadRoles: boolean,
 		canReadPersons: boolean,
 		canReadAssistances: boolean,
+		canReadReports: boolean,
     });
 
 	let user = $derived(data.user as {
@@ -56,12 +57,14 @@
 					style="color: #95a5a6; transition: all 0.3s;">
 					<i class="bi bi-speedometer2"></i> Dashboard
 				</a>
-				<a href="/dashboard/municipalities" 
-					class="nav-link mb-2 mx-2" 
-					class:active={isActive('/dashboard/municipalities')}
-					style="color: #95a5a6; transition: all 0.3s;">
-					<i class="bi bi-buildings"></i> Towns
-				</a>
+				{#if capabilities.canReadReports}
+					<a href="/dashboard/municipalities" 
+						class="nav-link mb-2 mx-2" 
+						class:active={isActive('/dashboard/municipalities')}
+						style="color: #95a5a6; transition: all 0.3s;">
+						<i class="bi bi-buildings"></i> Towns
+					</a>
+				{/if}
 				{#if capabilities.canReadPersons}
 					<a href="/dashboard/people" 
 						class="nav-link mb-2 mx-2" 

@@ -3,8 +3,23 @@ import { Locality } from '$lib/database/entities/Locality';
 import { FinancialAssistance, MedicineAssistance } from '$lib/database/entities/Assistance';
 import { Person } from '$lib/database/entities/Person';
 import { In } from 'typeorm';
+import { error, redirect } from '@sveltejs/kit';
+import { User } from '$lib/database/entities/User';
+import { Permission } from '$lib/utils/Permission';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ locals, cookies }) => {
+	const currentUser = await User.findOne({
+		where: { id: locals.user?.id },
+		relations: { role: true }
+	});
+	if (!currentUser) {
+		cookies.delete('auth_token', { path: '/' });
+		throw redirect(302, '/login');
+	}
+	if(!currentUser.can(Permission.READ_REPORTS)) {
+		throw error(401, 'Unauthorized');
+	}
+
 	try {
 		// Get all municipalities and cities (type='municipality' or 'city' with a parent province)
 		const municipalities = await Locality.find({

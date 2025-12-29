@@ -3,6 +3,7 @@ import type { PageServerLoad } from './$types';
 import { User } from '$lib/database/entities/User';
 import { Permission } from '$lib/utils/Permission';
 import { Locality } from '$lib/database/entities/Locality';
+import { IsNull } from 'typeorm';
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
     if (!locals.user) {
@@ -24,7 +25,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 
     // Load towns with barangays
     const towns = await Locality.find({
-        where: { parent: null },
+        where: { parentId: IsNull() },
         relations: { children: true },
         order: { name: 'ASC' }
     });

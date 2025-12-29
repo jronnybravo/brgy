@@ -6,18 +6,17 @@ import { error, redirect } from '@sveltejs/kit';
 import { User } from '$lib/database/entities/User';
 import { Permission } from '$lib/utils/Permission';
 
-export const load: PageServerLoad = async ({ params, locals, cookies }) => {
-	if (!locals.user) {
-		throw redirect(302, '/login');
-	}
-
+export const load: PageServerLoad = async ({ locals, cookies, params }) => {
 	const currentUser = await User.findOne({
-		where: { id: locals.user.id },
+		where: { id: locals.user?.id },
 		relations: { role: true }
 	});
 	if (!currentUser) {
 		cookies.delete('auth_token', { path: '/' });
 		throw redirect(302, '/login');
+	}
+	if(!currentUser.can(Permission.READ_REPORTS)) {
+		throw error(401, 'Unauthorized');
 	}
 
 	const capabilities = {

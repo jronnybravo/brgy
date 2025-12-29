@@ -6,12 +6,11 @@
 			id: number;
 			username: string;
 			email: string;
-			role: string;
+			roleId: number | null;
 		};
 	}
 
-	export let data: PageData;
-	export let form;
+	let { data, form }: { data: PageData; form: any } = $props();
 </script>
 
 <div class="container-fluid p-4">
@@ -22,9 +21,7 @@
 
 	<UserDetails 
 		user={data.user} 
-		{form} 
-		isOwnAccount={true}
-		showPasswordSection={true}
+		{form}
 	/>
 </div>
 

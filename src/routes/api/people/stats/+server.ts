@@ -1,7 +1,9 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { Locality } from '$lib/database/entities/Locality';
+import { Person } from '$lib/database/entities/Person';
 import { ConnectionErrorHandler } from '$lib/database/connection-error-handler';
+import { In } from 'typeorm';
 
 // Retry logic for failed queries
 async function fetchWithRetry<T>(
@@ -44,7 +46,7 @@ async function fetchWithRetry<T>(
 
 export const GET: RequestHandler = async () => {
 	try {
-		// Get SIQUIJOR province with municipalities and their barangays (with person counts)
+		// Get SIQUIJOR province with municipalities and their barangays (WITHOUT loading all persons)
 		const siquijorProvince = await fetchWithRetry(
 			() => Locality.findOne({
 				where: {
@@ -53,9 +55,7 @@ export const GET: RequestHandler = async () => {
 				},
 				relations: {
 					children: { // municipalities
-						children: { // barangays
-							persons: true
-						}
+						children: true // barangays (no persons relation)
 					}
 				},
 				order: {
@@ -80,6 +80,37 @@ export const GET: RequestHandler = async () => {
 			});
 		}
 
+		// Get all barangay IDs to count people efficiently
+		const barangayIds: number[] = [];
+		siquijorProvince.children.forEach((m) => {
+			if (m.children) {
+				m.children.forEach((b) => {
+					if (b.type === 'barangay') {
+						barangayIds.push(b.id);
+					}
+				});
+			}
+		});
+
+		// Fetch people counts for all barangays in one efficient query
+		const peopleCounts = await fetchWithRetry(async () => {
+			if (barangayIds.length === 0) return [];
+			
+			const counts = await Person.find({
+				where: { barangayId: In(barangayIds) },
+				select: ['barangayId']
+			});
+
+			// Count people per barangay
+			const countMap = new Map<number, number>();
+			counts.forEach((person) => {
+				if (person.barangayId) {
+					countMap.set(person.barangayId, (countMap.get(person.barangayId) || 0) + 1);
+				}
+			});
+			return countMap;
+		}, 3, 100);
+
 		// Transform and filter in one pass, already ordered from query
 		const municipalities = siquijorProvince.children
 			.filter((m) => m.type === 'municipality')
@@ -91,7 +122,7 @@ export const GET: RequestHandler = async () => {
 					.map((barangay) => ({
 						id: barangay.id,
 						name: barangay.name,
-						peopleCount: barangay.persons?.length || 0
+						peopleCount: peopleCounts instanceof Map ? peopleCounts.get(barangay.id) || 0 : 0
 					}))
 			}))
 			.sort((a, b) => {

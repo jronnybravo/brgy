@@ -8,6 +8,9 @@
 			username: string;
 			role: string;
 		};
+		capabilities: {
+			canReadReports: boolean;
+		}
 	}
 
 	export let data: PageData;
@@ -20,10 +23,12 @@
 	</div>
 
 	<div class="row g-4">
-		<!-- Top Row: Election Results Map -->
-		<div class="col-12">
-			<ElectionResultsMap />
-		</div>
+		{#if data.capabilities.canReadReports}
+			<!-- Top Row: Election Results Map -->
+			<div class="col-12">
+				<ElectionResultsMap />
+			</div>
+		{/if}
 
 		<!-- Bottom Row: People Statistics -->
 		<div class="col-12">

@@ -14,7 +14,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	// Fetch current user details (without password)
 	const user = await userRepository.findOne({
-		where: { id: locals.user.id }
+		where: { id: locals.user.id },
+		relations: { role: true }
 	});
 
 	if (!user) {
@@ -26,7 +27,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			id: user.id,
 			username: user.username,
 			email: user.email,
-			role: user.role
+			roleId: user.roleId
 		}
 	};
 };

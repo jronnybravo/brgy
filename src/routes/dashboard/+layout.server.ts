@@ -21,6 +21,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		canReadRoles: currentUser.can(Permission.READ_ROLES),
 		canReadPersons: currentUser.can(Permission.READ_PERSONS),
 		canReadAssistances: currentUser.can(Permission.READ_ASSISTANCES),
+		canReadReports: currentUser.can(Permission.READ_REPORTS),
 	};
 
 	return {

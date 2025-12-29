@@ -5,6 +5,10 @@ import { getDataSource } from '$lib/database/data-source';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {
+		if (!params.id) {
+			return json({ error: 'Invalid person ID' }, { status: 400 });
+		}
+
 		const personId = parseInt(params.id);
 
 		if (isNaN(personId)) {

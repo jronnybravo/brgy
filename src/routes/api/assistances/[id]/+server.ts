@@ -73,12 +73,7 @@ export const DELETE: RequestHandler = async ({ params }) => {
 		const id = parseInt(params.id!);
 
 		// Try to find and delete from both tables
-		let assistance = await FinancialAssistance.findOne({ where: { id } });
-		
-		if (!assistance) {
-			assistance = await MedicineAssistance.findOne({ where: { id } });
-		}
-
+			let assistance: FinancialAssistance | MedicineAssistance | null = await FinancialAssistance.findOne({ where: { id } });
 		if (!assistance) {
 			return json({ success: false, error: 'Assistance not found' }, { status: 404 });
 		}

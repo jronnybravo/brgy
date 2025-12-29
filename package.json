@@ -9,7 +9,8 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "typeorm": "typeorm-ts-node-commonjs",
-    "seed:assistance": "tsx ./scripts/seed-assistance-data.ts"
+    "seed:assistance": "tsx ./scripts/seed-assistance-data.ts",
+    "seed:users": "tsx ./scripts/seed-users.ts"
   },
   "devDependencies": {
     "@sveltejs/adapter-auto": "^3.0.0",
