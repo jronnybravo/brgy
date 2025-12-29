@@ -6,8 +6,26 @@ import { FinancialAssistance, MedicineAssistance } from '$lib/database/entities/
 import { Like, In } from 'typeorm';
 import type { FindOptionsWhere, FindOptionsOrder, FindManyOptions } from 'typeorm';
 import qs from 'qs';
+import { User } from '$lib/database/entities/User';
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, locals }) => {
+	const user = locals.user ? await User.findOneBy({ id: locals.user.id }) : null;
+	if (!user) {
+		return json(
+			{
+				success: false,
+				recordsTotal: 0,
+				recordsFiltered: 0,
+				data: [],
+				error: 'Unauthorized'
+			},
+			{ status: 401 }
+		);
+	}
+
+	const allowedBarangays = await user.getJurisdictionalBarangays();
+	const allowedBarangayIds = allowedBarangays.map(b => b.id);
+
 	try {
 		const params = qs.parse(url.searchParams.toString()) as {
 			start?: string;
@@ -135,7 +153,8 @@ export const GET: RequestHandler = async ({ url }) => {
 					'barangay.name',
 					'parent.id',
 					'parent.name'
-				]);
+				])
+				.where('person.barangayId IN (:...allowedBarangayIds)', { allowedBarangayIds });
 
 			// Apply where conditions
 			if (Array.isArray(finalWhere)) {
@@ -170,12 +189,12 @@ export const GET: RequestHandler = async ({ url }) => {
 
 			// Apply town filter
 			if (townFilter) {
-				query.andWhere('parent.name = :townName', { townName: townFilter });
+				query.andWhere('parent.id = :townId', { townId: townFilter });
 			}
 
 			// Apply barangay filter
 			if (barangayFilter) {
-				query.andWhere('barangay.name = :barangayName', { barangayName: barangayFilter });
+				query.andWhere('barangay.id = :barangayId', { barangayId: barangayFilter });
 			}
 
 			// Apply sorting

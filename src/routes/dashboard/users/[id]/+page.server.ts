@@ -311,6 +311,13 @@ export const actions = {
 			});
 		}
 
+		if (!roleId) {
+			return fail(400, {
+				...errorResponse,
+				error: 'A role must be selected'
+			});
+		}
+
 		try {
 			const dataSource = await getDataSource();
 			const userRepository = dataSource.getRepository(User);

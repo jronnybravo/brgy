@@ -30,7 +30,10 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		canDeleteUsers: currentUser.can(Permission.DELETE_USERS),
 	}
 
-	const users = instanceToPlain(await User.find({ order: { id: 'ASC' } }));
+	const users = instanceToPlain(await User.find({
+		order: { id: 'ASC' },
+		relations: { role: true }
+	}));
 	
 	return {
 		users,

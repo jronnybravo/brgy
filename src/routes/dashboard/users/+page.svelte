@@ -107,7 +107,7 @@
 							<td><strong style="color: #2c3e50;">{user.username}</strong></td>
 							<td style="color: #7f8c8d;">{user.email}</td>
 							<td>
-								{user.role.name}
+								{user.role?.name}
 							</td>
 							<td><small style="color: #7f8c8d;">{getFormattedDate(user.createdAt)}</small></td>
 							<td>

@@ -1,14 +1,33 @@
 import type { PageServerLoad, Actions } from './$types';
-import { redirect } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { Person } from '$lib/database/entities/Person';
 import { Locality } from '$lib/database/entities/Locality';
 import { instanceToPlain } from 'class-transformer';
+import { User } from '$lib/database/entities/User';
+import { Permission } from '$lib/utils/Permission';
+import { AppDataSource } from '$lib/database/data-source';
+import { In } from 'typeorm';
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params, locals, cookies }) => {
 	const user = locals.user;
 	if (!user) {
 		redirect(302, '/login');
 	}
+
+    const currentUser = await User.findOne({
+        where: { id: locals.user?.id },
+        relations: { role: true, jurisdictions: true }
+    });
+    if(!currentUser) {
+        cookies.delete('auth_token', { path: '/' });
+        redirect(302, '/login');
+    }
+    if(!currentUser.can(Permission.READ_PERSONS)) {
+        throw error(401, 'Unauthorized');
+    }
+
+    const allowedBarangays = await currentUser.getJurisdictionalBarangays();
+    const allowedTowns = await currentUser.getJurisdictionalTowns();
 
 	const isNew = params.id === 'new';
 	let person = null;
@@ -25,27 +44,11 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		}
 	}
 
-	// Get Siquijor Province
-	const allLocalities = await Locality.find();
-	const siquijor = allLocalities.find(l => l.name?.includes('SIQUIJOR') && l.type === 'province');
-
-	let municipalities: any[] = [];
-	let barangays: any[] = [];
-
-	if (siquijor) {
-		const muns = allLocalities.filter(l => l.parentId === siquijor.id && (l.type === 'municipality' || l.type === 'city'));
-		municipalities = muns.sort((a, b) => a.name.localeCompare(b.name));
-
-		const barIds = muns.map(m => m.id);
-		const allBarangays = allLocalities.filter(l => l.parentId && barIds.includes(l.parentId) && l.type === 'barangay');
-		barangays = allBarangays.sort((a, b) => a.name.localeCompare(b.name));
-	}
-
 	return {
 		person: instanceToPlain(person),
 		isNew,
-		municipalities: instanceToPlain(municipalities),
-		barangays: instanceToPlain(barangays)
+		towns: instanceToPlain(allowedTowns),
+		barangays: instanceToPlain(allowedBarangays)
 	};
 };
 

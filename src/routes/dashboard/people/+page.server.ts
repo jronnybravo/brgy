@@ -3,6 +3,7 @@ import type { PageServerLoad } from './$types';
 import { User } from '$lib/database/entities/User';
 import { Permission } from '$lib/utils/Permission';
 import { Locality } from '$lib/database/entities/Locality';
+import { instanceToPlain } from 'class-transformer';
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
 	if (!locals.user) {
@@ -22,22 +23,8 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		throw error(401, 'Unauthorized');
 	}
 
-	// Load towns with barangays
-	const towns = await Locality.find({
-		where: { parent: null },
-		relations: { children: true },
-		order: { name: 'ASC' }
-	});
-
-	// Convert to plain objects for serialization
-	const townsData = towns.map(town => ({
-		id: town.id,
-		name: town.name,
-		children: town.children ? town.children.map(b => ({
-			id: b.id,
-			name: b.name
-		})) : []
-	}));
+	const towns = await currentUser.getJurisdictionalTowns();
+	const barangays = await currentUser.getJurisdictionalBarangays();
 
 	const capabilities = {
 		canCreatePersons: currentUser.can(Permission.CREATE_PERSONS),
@@ -48,6 +35,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 	return {
 		user: locals.user,
 		capabilities,
-		towns: townsData
+		towns: instanceToPlain(towns),
+		barangays: instanceToPlain(barangays)
 	};
 };

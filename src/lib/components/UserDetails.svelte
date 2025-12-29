@@ -141,11 +141,28 @@
 						</div>
 
 						<div class="mb-3">
-							<small style="color: #7f8c8d;">Role</small>
-							<p class="form-control-plaintext mb-0">
-								<span class="badge bg-primary">{user?.roleId}</span>
-							</p>
-						</div>
+						<label for="role" class="form-label fw-medium" style="color: #2c3e50;">Role *</label>
+						{#if loadingRoles}
+							<div class="form-control" style="background-color: #f8f9fa;">
+								<small class="text-muted">Loading roles...</small>
+							</div>
+						{:else if rolesError}
+							<div class="form-control" style="background-color: #f8f9fa; border-color: #dc3545;">
+								<small class="text-danger">{rolesError}</small>
+							</div>
+						{:else}
+							<select id="role" class="form-select" name="roleId" bind:value={formRoleId} style="border-color: #dee2e6;">
+								<option value={null}>-- Select a role --</option>
+								{#each roles as role}
+									<option value={role.id}>{role.name}</option>
+								{/each}
+							</select>
+							{#if roles.length > 0 && roles.find(r => r.id === formRoleId)?.description}
+								<small class="text-muted d-block mt-1">
+									{roles.find(r => r.id === formRoleId)?.description}
+								</small>
+							{/if}
+						{/if}
 
 						<!-- Hidden jurisdictions input -->
 						{#each selectedJurisdictions as jurisdictionId (jurisdictionId)}
@@ -363,6 +380,25 @@
         </div>
     </div>
 
+	<!-- Jurisdictions Section -->
+	<div class="col-12">
+		<div class="card shadow-sm border-0 rounded-3">
+			<div class="card-header bg-white border-bottom" style="border-color: #e9ecef !important;">
+				<h5 class="card-title mb-0 fw-bold" style="color: #2c3e50;">
+					🗺️ Jurisdictions
+				</h5>
+			</div>
+			<div class="card-body p-4">
+				<JurisdictionTreeSelector
+					bind:selectedJurisdictions
+					localities={localities}
+					label="Assign Localities"
+					helpText="Select the localities this user has jurisdiction over. This determines which areas the user can access and manage."
+				/>
+			</div>
+		</div>
+	</div>
+
 	<!-- Account Info Section -->
 	{#if !isNew}
 		<div class="col-12">
@@ -389,25 +425,6 @@
 			</div>
 		</div>
 	{/if}
-
-	<!-- Jurisdictions Section -->
-	<div class="col-12">
-		<div class="card shadow-sm border-0 rounded-3">
-			<div class="card-header bg-white border-bottom" style="border-color: #e9ecef !important;">
-				<h5 class="card-title mb-0 fw-bold" style="color: #2c3e50;">
-					🗺️ Jurisdictions
-				</h5>
-			</div>
-			<div class="card-body p-4">
-				<JurisdictionTreeSelector
-					bind:selectedJurisdictions
-					localities={localities}
-					label="Assign Localities"
-					helpText="Select the localities this user has jurisdiction over. This determines which areas the user can access and manage."
-				/>
-			</div>
-		</div>
-	</div>
 </div>
 
 <style>

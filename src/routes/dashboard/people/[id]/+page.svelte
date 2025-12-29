@@ -1,17 +1,18 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import type { Locality } from '$lib/database/entities/Locality.js';
 
 	interface PageData {
 		person: any | null;
 		isNew: boolean;
-		municipalities: any[];
-		barangays: any[];
+		towns: Locality[];
+		barangays: Locality[];
 	}
 
 	export let data: PageData;
 	export let form;
 
-	let selectedMunicipality = '';
+	let selectedTown: Locality | null = null;
 	let showToast = false;
 	let toastMessage = '';
 	let toastType: 'success' | 'error' = 'success';
@@ -31,7 +32,7 @@
 	};
 
 	$: {
-		if (data.person && !selectedMunicipality) {
+		if (data.person && !selectedTown) {
 			formData = {
 				firstName: data.person.firstName || '',
 				lastName: data.person.lastName || '',
@@ -47,13 +48,13 @@
 
 			const barangay = data.barangays.find(b => b.id === data.person.barangayId);
 			if (barangay) {
-				selectedMunicipality = barangay.parentId.toString();
+				selectedTown = data.towns.find(t => t.id === barangay.parentId) || null;
 			}
 		}
 	}
 
-	$: filteredBarangays = selectedMunicipality
-		? data.barangays.filter(b => b.parentId === parseInt(selectedMunicipality))
+	$: filteredBarangays = selectedTown
+		? data.barangays.filter(b => b.parentId === selectedTown?.id)
 		: [];
 
 	$: pageTitle = data.isNew ? 'Create New Person' : `Edit Person - ${data.person?.firstName} ${data.person?.lastName}`;
@@ -172,15 +173,13 @@
 				<div class="row mb-3">
 					<div class="col-md-6">
 						<label for="municipality" class="form-label fw-500">Municipality *</label>
-						<select 
-							id="municipality" 
+						<select id="municipality" 
 							class="form-select form-select-lg" 
-							bind:value={selectedMunicipality} 
-							required
-						>
+							bind:value={selectedTown} 
+							required>
 							<option value="">-- Select Municipality --</option>
-							{#each data.municipalities as municipality}
-								<option value={municipality.id.toString()}>{municipality.name}</option>
+							{#each data.towns as town}
+								<option value={town}>{town.name}</option>
 							{/each}
 						</select>
 					</div>
@@ -191,8 +190,7 @@
 							name="barangayId"
 							class="form-select form-select-lg" 
 							bind:value={formData.barangayId} 
-							required
-						>
+							required>
 							<option value="">-- Select Barangay --</option>
 							{#each filteredBarangays as barangay}
 								<option value={barangay.id.toString()}>{barangay.name}</option>
