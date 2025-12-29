@@ -235,71 +235,71 @@
 {/if}
 
 <div class="card shadow-sm border-0">
-	<div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
-		<div class="row align-items-center g-2">
-			<div class="col-md-3">
-				<input
-					type="text"
-					class="form-control form-control-sm"
-					placeholder="Search people..."
-					value={searchQuery}
-					oninput={handleSearch}
-					style="background-color: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);"
-				/>
-			</div>
-			<div class="col-md-3">
-				<select bind:value={selectedTown}
-					onchange={() => { loadPeople(1); } }
-					class="form-select form-select-sm"
-					style="background-color: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);">
-					<option value={null}>All Towns</option>
-					{#each towns as town}
-						<option value={town}>{town.name}</option>
-					{/each}
-				</select>
-			</div>
-			<div class="col-md-3">
-				<select bind:value={selectedBarangay}
-					onchange={() => { loadPeople(1);} }
-					class="form-select form-select-sm"
-					style="background-color: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);">
-					<option value={null}>All Barangays</option>
-					{#each towns as town}
-						{@const townBarangays = barangays.filter(b => b.parentId === town.id)	}
-						{@const disabled = selectedTown && selectedTown.id !== town.id}
-						{#if townBarangays}
-							<optgroup label={town.name}>
-								{#each townBarangays as barangay}
-									<option value={barangay} disabled={disabled}>
-										{barangay.name}
-									</option>
-								{/each}
-							</optgroup>
-						{/if}
-					{/each}
-				</select>
-			</div>
-			<div class="col-md-3">
-				<div class="form-check form-check-inline">
-					<input
-						class="form-check-input"
-						type="checkbox"
-						id="supporterFilter"
-						checked={supporterFilter === true}
-						onchange={toggleSupporterFilter}
-						style="cursor: pointer;"
-					/>
-					<label class="form-check-label text-white" for="supporterFilter" style="cursor: pointer; font-size: 0.9rem;">
-						Supporters
-					</label>
-				</div>
-			</div>
-		</div>
-	</div>
-
 	<div class="table-responsive">
 		<table class="table table-hover mb-0">
 			<thead class="table-light">
+				<tr>
+					<th>
+						<input
+							type="text"
+							class="form-control form-control-sm"
+							placeholder="Search by name..."
+							value={searchQuery}
+							oninput={handleSearch}
+						/>
+					</th>
+					{#if showLocationColumns}
+						<th>
+							<select bind:value={selectedTown}
+								onchange={() => { loadPeople(1); } }
+								class="form-select form-select-sm">
+								<option value={null}>All Towns</option>
+								{#each towns as town}
+									<option value={town}>{town.name}</option>
+								{/each}
+							</select>
+						</th>
+						<th>
+							<select bind:value={selectedBarangay}
+								onchange={() => { loadPeople(1);} }
+								class="form-select form-select-sm">
+								<option value={null}>All Barangays</option>
+								{#each towns as town}
+									{@const townBarangays = barangays.filter(b => b.parentId === town.id)	}
+									{@const disabled = selectedTown && selectedTown.id !== town.id}
+									{#if townBarangays}
+										<optgroup label={town.name}>
+											{#each townBarangays as barangay}
+												<option value={barangay} disabled={disabled}>
+													{barangay.name}
+												</option>
+											{/each}
+										</optgroup>
+									{/if}
+								{/each}
+							</select>
+						</th>
+					{/if}
+					<th></th>
+					<th>
+						<div class="form-check form-check-inline">
+							<input
+								class="form-check-input"
+								type="checkbox"
+								id="supporterFilter"
+								checked={supporterFilter === true}
+								onchange={toggleSupporterFilter}
+								style="cursor: pointer;"
+							/>
+							<label class="form-check-label" for="supporterFilter" style="cursor: pointer; font-size: 0.9rem;">
+								Supporters
+							</label>
+						</div>
+					</th>
+					<th></th>
+					<th></th>
+					<th></th>
+				</tr>
 				<tr>
 					<th style="cursor: pointer;" onclick={() => handleColumnSort('lastName')}>
 						Name {#if sortColumn === 'lastName'}{sortDir === 'asc' ? '↑' : '↓'}{/if}
