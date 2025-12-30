@@ -201,16 +201,28 @@
 				<thead class="table-light">
 					<tr>
 						<th style="color: #2c3e50; cursor: pointer;" onclick={() => handleSort('id')}>
-							ID {sortColumn === 'id' && (sortDir === 'asc' ? '↑' : '↓')}
+							ID
+							{#if (sortColumn === 'id')}
+								{sortDir === 'asc' ? ' ↑' : ' ↓'}
+							{/if}
 						</th>
 						<th style="color: #2c3e50; cursor: pointer;" onclick={() => handleSort('username')}>
-							Username {sortColumn === 'username' && (sortDir === 'asc' ? '↑' : '↓')}
+							Username
+							{#if (sortColumn === 'username')}
+								{sortDir === 'asc' ? ' ↑' : ' ↓'}
+							{/if}
 						</th>
 						<th style="color: #2c3e50; cursor: pointer;" onclick={() => handleSort('email')}>
-							Email {sortColumn === 'email' && (sortDir === 'asc' ? '↑' : '↓')}
+							Email
+							{#if (sortColumn === 'email')}
+								{sortDir === 'asc' ? ' ↑' : ' ↓'}
+							{/if}
 						</th>
 						<th style="color: #2c3e50; cursor: pointer;" onclick={() => handleSort('role')}>
-							Role {sortColumn === 'role' && (sortDir === 'asc' ? '↑' : '↓')}
+							Role
+							{#if (sortColumn === 'role')}
+								{sortDir === 'asc' ? ' ↑' : ' ↓'}
+							{/if}
 						</th>
 						<th style="color: #2c3e50;">Jurisdiction</th>
 						<th style="color: #2c3e50;">Actions</th>

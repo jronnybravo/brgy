@@ -301,12 +301,12 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 
 			// Apply town filter
 			if (townFilter) {
-				query.andWhere('parent.name = :townName', { townName: townFilter });
+				query.andWhere('parent.id = :townId', { townId: townFilter });
 			}
 
 			// Apply barangay filter
 			if (barangayFilter) {
-				query.andWhere('barangay.name = :barangayName', { barangayName: barangayFilter });
+				query.andWhere('barangay.id = :barangayId', { barangayId: barangayFilter });
 			}
 
 			// Add sorting by aggregate
@@ -322,6 +322,8 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 			// Get total count before pagination (requires a separate count query)
 			const countQuery = dataSource
 				.createQueryBuilder(Person, 'person')
+				.leftJoin('person.barangay', 'barangay')
+				.leftJoin('barangay.parent', 'parent')
 				.select('COUNT(DISTINCT person.id)', 'count');
 
 			if (Array.isArray(finalWhere)) {
@@ -338,6 +340,16 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 				if (finalWhere.barangayId) countQuery.andWhere('person.barangayId = :barangayId', { barangayId: finalWhere.barangayId });
 				if (finalWhere.isSupporter !== undefined) countQuery.andWhere('person.isSupporter = :isSupporter', { isSupporter: finalWhere.isSupporter });
 				if (finalWhere.isLeader !== undefined) countQuery.andWhere('person.isLeader = :isLeader', { isLeader: finalWhere.isLeader });
+			}
+
+			// Apply town filter to count query
+			if (townFilter) {
+				countQuery.andWhere('parent.id = :townId', { townId: townFilter });
+			}
+
+			// Apply barangay filter to count query
+			if (barangayFilter) {
+				countQuery.andWhere('barangay.id = :barangayId', { barangayId: barangayFilter });
 			}
 
 			const countResult = await countQuery.getRawOne();
