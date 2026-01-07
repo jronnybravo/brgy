@@ -9,6 +9,7 @@ import { User } from './entities/User';
 import { Person } from './entities/Person';
 import { Assistance, FinancialAssistance, MedicineAssistance } from './entities/Assistance';
 import { Role } from './entities/Role';
+import { Notification } from './entities/Notification';
 
 // Load environment variables from .env file
 config();
@@ -33,7 +34,8 @@ export const AppDataSource = new DataSource({
 		Person,
 		Assistance,
 		FinancialAssistance,
-		MedicineAssistance
+		MedicineAssistance,
+		Notification
 	],
 	migrations: [],
 	subscribers: [],

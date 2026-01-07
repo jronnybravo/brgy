@@ -63,6 +63,21 @@ CREATE TRIGGER update_localities_updated_at BEFORE UPDATE ON localities
 CREATE TRIGGER update_voters_updated_at BEFORE UPDATE ON voters
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+-- Notifications table
+CREATE TABLE notifications (
+    id SERIAL PRIMARY KEY,
+    type VARCHAR(50) NOT NULL DEFAULT 'Success',
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    link TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    read_at TIMESTAMP
+);
+
+CREATE INDEX idx_notifications_user ON notifications(user_id);
+CREATE INDEX idx_notifications_read_status ON notifications(user_id, read_at);
+CREATE INDEX idx_notifications_created_at ON notifications(created_at DESC);
+
 -- Example: Insert a locality from GeoJSON
 -- INSERT INTO localities (name, code, type, geometry) 
 -- VALUES (

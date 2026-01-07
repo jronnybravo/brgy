@@ -1,8 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToMany, JoinTable, BaseEntity, ManyToOne, In } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToMany, JoinTable, BaseEntity, ManyToOne, In, OneToMany } from 'typeorm';
 import { Locality } from './Locality';
 import { Role } from './Role';
+import { Notification } from './Notification';
 import { Serializable } from './decorators/Serializable';
 import { AppDataSource } from '../data-source';
+
 
 @Entity('users')
 @Serializable()
@@ -38,6 +40,9 @@ export class User extends BaseEntity {
 
 	@ManyToOne(() => Role, (role) => role.users, { eager: false })
 	role!: Role;
+
+	@OneToMany(() => Notification, (notification) => notification.user)
+	notifications!: Notification[];
 
 	can(permission: string): boolean {
 		return this.role.can(permission);
